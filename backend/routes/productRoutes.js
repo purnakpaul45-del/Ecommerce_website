@@ -9,7 +9,7 @@ import {
 } from "../controllers/productController.js";
 
 import upload from "../middleware/multer.js";
-import adminAuth from "../middleware/adminAuth.js";
+import adminAuth from "../middleware/adminauth.js";
 
 const productRouter = express.Router();
 
