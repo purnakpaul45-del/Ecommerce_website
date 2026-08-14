@@ -1,7 +1,7 @@
 
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
-import ProductModel from "../models/productModel.js";
+import ProductModel from "../models/ProductModel.js";
 
 // ======================================================
 // GET ADMIN DASHBOARD DATA
