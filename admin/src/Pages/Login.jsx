@@ -15,7 +15,6 @@ import { useAuth } from "../Context/AuthContext";
 const Login = () => {
   const navigate = useNavigate();
 
-  // AuthContext
   const { login } = useAuth();
 
   // ==========================================
@@ -43,7 +42,6 @@ const Login = () => {
       [name]: value,
     }));
 
-    // Clear previous error
     setError("");
   };
 
@@ -56,12 +54,12 @@ const Login = () => {
 
     setError("");
 
+    const email = formData.email.trim().toLowerCase();
+    const password = formData.password;
+
     // ==========================================
     // VALIDATION
     // ==========================================
-
-    const email = formData.email.trim().toLowerCase();
-    const password = formData.password;
 
     if (!email) {
       setError("Please enter your admin email address.");
@@ -73,6 +71,19 @@ const Login = () => {
       return;
     }
 
+    // ==========================================
+    // BACKEND URL
+    // ==========================================
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+    if (!backendUrl) {
+      setError(
+        "Backend URL is not configured. Please check your environment variables."
+      );
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -80,13 +91,14 @@ const Login = () => {
       console.log("ADMIN LOGIN");
       console.log("================================");
       console.log("Email:", email);
+      console.log("Backend:", backendUrl);
 
       // ==========================================
       // ADMIN LOGIN API
       // ==========================================
 
       const response = await axios.post(
-        "http://localhost:8005/api/admin/login",
+        `${backendUrl}/api/admin/login`,
         {
           email,
           password,
@@ -98,10 +110,7 @@ const Login = () => {
         }
       );
 
-      console.log(
-        "Admin Login Response:",
-        response.data
-      );
+      console.log("Admin Login Response:", response.data);
 
       // ==========================================
       // LOGIN SUCCESS
@@ -118,10 +127,7 @@ const Login = () => {
         // SAVE JWT TOKEN
         // ========================================
 
-        localStorage.setItem(
-          "token",
-          token
-        );
+        localStorage.setItem("token", token);
 
         // ========================================
         // SAVE ADMIN INFORMATION
@@ -178,10 +184,7 @@ const Login = () => {
           "Invalid admin email or password."
       );
     } catch (error) {
-      console.error(
-        "Admin Login Error:",
-        error
-      );
+      console.error("Admin Login Error:", error);
 
       // ==========================================
       // BACKEND RESPONSE ERROR
@@ -210,7 +213,7 @@ const Login = () => {
 
       else if (error.request) {
         setError(
-          "Unable to connect to backend. Make sure the server is running on port 8005."
+          "Unable to connect to the backend. Please check your internet connection or try again later."
         );
       }
 
@@ -234,7 +237,6 @@ const Login = () => {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 px-4 py-10">
-
       <div className="w-full max-w-md">
 
         {/* ======================================
@@ -242,11 +244,8 @@ const Login = () => {
         ====================================== */}
 
         <div className="mb-8 text-center">
-
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-xl shadow-indigo-500/20">
-
             <Store size={30} />
-
           </div>
 
           <h1 className="mt-5 text-2xl font-bold text-slate-900">
@@ -256,7 +255,6 @@ const Login = () => {
           <p className="mt-2 text-sm text-slate-500">
             Administrator Portal
           </p>
-
         </div>
 
         {/* ======================================
@@ -266,7 +264,6 @@ const Login = () => {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/5 sm:p-8">
 
           <div className="mb-7">
-
             <h2 className="text-2xl font-bold text-slate-900">
               Admin Login
             </h2>
@@ -274,7 +271,6 @@ const Login = () => {
             <p className="mt-2 text-sm text-slate-500">
               Sign in to access your admin dashboard.
             </p>
-
           </div>
 
           {/* ====================================
@@ -296,12 +292,9 @@ const Login = () => {
             className="space-y-5"
           >
 
-            {/* ==================================
-                EMAIL
-            ================================== */}
+            {/* EMAIL */}
 
             <div>
-
               <label
                 htmlFor="email"
                 className="mb-2 block text-sm font-semibold text-slate-700"
@@ -310,7 +303,6 @@ const Login = () => {
               </label>
 
               <div className="relative">
-
                 <Mail
                   size={19}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -328,17 +320,12 @@ const Login = () => {
                   required
                   className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                 />
-
               </div>
-
             </div>
 
-            {/* ==================================
-                PASSWORD
-            ================================== */}
+            {/* PASSWORD */}
 
             <div>
-
               <label
                 htmlFor="password"
                 className="mb-2 block text-sm font-semibold text-slate-700"
@@ -347,7 +334,6 @@ const Login = () => {
               </label>
 
               <div className="relative">
-
                 <LockKeyhole
                   size={19}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -370,8 +356,6 @@ const Login = () => {
                   className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-12 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
-                {/* Show / Hide Password */}
-
                 <button
                   type="button"
                   onClick={() =>
@@ -387,46 +371,36 @@ const Login = () => {
                       : "Show password"
                   }
                 >
-
                   {showPassword ? (
                     <EyeOff size={19} />
                   ) : (
                     <Eye size={19} />
                   )}
-
                 </button>
-
               </div>
-
             </div>
 
-            {/* ==================================
-                LOGIN BUTTON
-            ================================== */}
+            {/* LOGIN BUTTON */}
 
             <button
               type="submit"
               disabled={loading}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-
               {loading ? (
                 <>
                   <Loader2
                     size={18}
                     className="animate-spin"
                   />
-
                   Signing In...
                 </>
               ) : (
                 "Sign In to Dashboard"
               )}
-
             </button>
 
           </form>
-
         </div>
 
         {/* ======================================
@@ -438,7 +412,6 @@ const Login = () => {
         </p>
 
       </div>
-
     </div>
   );
 };

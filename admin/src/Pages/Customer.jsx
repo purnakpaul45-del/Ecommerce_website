@@ -21,7 +21,7 @@ const Customers = () => {
   // BACKEND URL
   // =========================================================
 
-  const backendUrl = "http://localhost:8005";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   // =========================================================
   // STATES

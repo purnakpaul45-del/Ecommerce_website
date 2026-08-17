@@ -1,5 +1,6 @@
 import {
   createContext,
+  useContext,
   useEffect,
   useState,
 } from "react";
@@ -12,13 +13,24 @@ import { toast } from "react-toastify";
 
 export const ShopContext = createContext();
 
+
+// =====================================================
+// AUTH HOOK
+// =====================================================
+
+export const useAuth = () => {
+  return useContext(ShopContext);
+};
+
+
 const ShopContextProvider = (props) => {
 
   // =====================================================
   // BACKEND
   // =====================================================
 
-  const backendUrl = "http://localhost:8005";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 
   // =====================================================
   // STORE SETTINGS
@@ -28,19 +40,21 @@ const ShopContextProvider = (props) => {
 
   const delivery_fee = 9;
 
+
   // =====================================================
   // NAVIGATION
   // =====================================================
 
   const navigate = useNavigate();
 
+
   // =====================================================
   // AUTHENTICATION
   // =====================================================
 
   const [token, setToken] = useState(() => {
-    const savedToken =
-      localStorage.getItem("token");
+
+    const savedToken = localStorage.getItem("token");
 
     console.log(
       "Token loaded from localStorage:",
@@ -49,6 +63,47 @@ const ShopContextProvider = (props) => {
 
     return savedToken || "";
   });
+
+
+  // =====================================================
+  // ADMIN LOGIN
+  // =====================================================
+
+  const login = (admin, newToken) => {
+
+    // Save token
+    setToken(newToken);
+
+    // Save admin information
+    if (admin) {
+
+      localStorage.setItem(
+        "admin",
+        JSON.stringify(admin)
+      );
+    }
+
+    console.log("Admin login successful");
+  };
+
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
+  const logout = () => {
+
+    setToken("");
+
+    localStorage.removeItem("token");
+
+    localStorage.removeItem("admin");
+
+    console.log("User logged out");
+
+    navigate("/login");
+  };
+
 
   // =====================================================
   // SAVE TOKEN TO LOCALSTORAGE
@@ -85,6 +140,7 @@ const ShopContextProvider = (props) => {
 
   }, [token]);
 
+
   // =====================================================
   // SEARCH STATES
   // =====================================================
@@ -95,12 +151,14 @@ const ShopContextProvider = (props) => {
   const [showSearch, setShowSearch] =
     useState(false);
 
+
   // =====================================================
   // CART STATE
   // =====================================================
 
   const [cartItems, setCartItems] =
     useState({});
+
 
   // =====================================================
   // ADD PRODUCT TO CART
@@ -112,6 +170,7 @@ const ShopContextProvider = (props) => {
   ) => {
 
     if (!size) {
+
       toast.error(
         "Please select product size"
       );
@@ -121,6 +180,7 @@ const ShopContextProvider = (props) => {
 
     const cartData =
       structuredClone(cartItems);
+
 
     if (cartData[itemId]) {
 
@@ -142,12 +202,15 @@ const ShopContextProvider = (props) => {
       cartData[itemId][size] = 1;
     }
 
+
     setCartItems(cartData);
+
 
     toast.success(
       "Product added to cart"
     );
   };
+
 
   // =====================================================
   // GET TOTAL CART COUNT
@@ -156,6 +219,7 @@ const ShopContextProvider = (props) => {
   const getCartCount = () => {
 
     let totalCount = 0;
+
 
     for (
       const itemId in cartItems
@@ -168,14 +232,18 @@ const ShopContextProvider = (props) => {
         const quantity =
           cartItems[itemId][size];
 
+
         if (quantity > 0) {
+
           totalCount += quantity;
         }
       }
     }
 
+
     return totalCount;
   };
+
 
   // =====================================================
   // UPDATE CART QUANTITY
@@ -190,6 +258,7 @@ const ShopContextProvider = (props) => {
     const cartData =
       structuredClone(cartItems);
 
+
     if (quantity <= 0) {
 
       if (
@@ -199,6 +268,7 @@ const ShopContextProvider = (props) => {
 
         delete cartData[itemId][size];
       }
+
 
       if (
         cartData[itemId] &&
@@ -213,15 +283,19 @@ const ShopContextProvider = (props) => {
     } else {
 
       if (!cartData[itemId]) {
+
         cartData[itemId] = {};
       }
+
 
       cartData[itemId][size] =
         quantity;
     }
 
+
     setCartItems(cartData);
   };
+
 
   // =====================================================
   // GET TOTAL CART AMOUNT
@@ -230,6 +304,7 @@ const ShopContextProvider = (props) => {
   const getCartAmount = () => {
 
     let totalAmount = 0;
+
 
     for (
       const itemId in cartItems
@@ -242,9 +317,12 @@ const ShopContextProvider = (props) => {
             product.id === itemId
         );
 
+
       if (!itemInfo) {
+
         continue;
       }
+
 
       for (
         const size in cartItems[itemId]
@@ -252,6 +330,7 @@ const ShopContextProvider = (props) => {
 
         const quantity =
           cartItems[itemId][size];
+
 
         if (quantity > 0) {
 
@@ -262,8 +341,10 @@ const ShopContextProvider = (props) => {
       }
     }
 
+
     return totalAmount;
   };
+
 
   // =====================================================
   // CLEAR CART
@@ -278,6 +359,7 @@ const ShopContextProvider = (props) => {
     );
   };
 
+
   // =====================================================
   // DEBUG CART
   // =====================================================
@@ -290,6 +372,7 @@ const ShopContextProvider = (props) => {
     );
 
   }, [cartItems]);
+
 
   // =====================================================
   // DEBUG AUTH TOKEN
@@ -311,6 +394,7 @@ const ShopContextProvider = (props) => {
 
   }, [token]);
 
+
   // =====================================================
   // CONTEXT VALUE
   // =====================================================
@@ -320,16 +404,22 @@ const ShopContextProvider = (props) => {
     // Products
     products,
 
+
     // Backend
     backendUrl,
+
 
     // Store
     currency,
     delivery_fee,
 
+
     // Authentication
     token,
     setToken,
+    login,
+    logout,
+
 
     // Search
     search,
@@ -337,6 +427,7 @@ const ShopContextProvider = (props) => {
 
     showSearch,
     setShowSearch,
+
 
     // Cart
     cartItems,
@@ -352,9 +443,11 @@ const ShopContextProvider = (props) => {
 
     clearCart,
 
+
     // Navigation
     navigate,
   };
+
 
   // =====================================================
   // PROVIDER
@@ -368,5 +461,6 @@ const ShopContextProvider = (props) => {
     </ShopContext.Provider>
   );
 };
+
 
 export default ShopContextProvider;

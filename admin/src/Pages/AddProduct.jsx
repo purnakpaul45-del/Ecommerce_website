@@ -248,7 +248,7 @@ const AddProduct = () => {
       // SEND TO BACKEND
       // ==========================================
       const response = await axios.post(
-        "http://localhost:8005/api/product/add",
+        `${import.meta.env.VITE_BACKEND_URL}/api/product/add`,
         productData,
         {
           headers: {

@@ -178,7 +178,7 @@ const Register = () => {
       setLoading(true);
 
       const response = await axios.post(
-        "http://localhost:8005/api/user/register",
+        `${import.meta.env.VITE_BACKEND_URL}/api/user/register`,
         {
           name,
           email,

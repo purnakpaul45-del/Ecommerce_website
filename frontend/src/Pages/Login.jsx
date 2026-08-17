@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -9,10 +8,23 @@ import {
   Mail,
   Store,
   Loader2,
+  ShoppingBag,
 } from "lucide-react";
+
+import { useAuth } from "../Context/ShopContext";
 
 const Login = () => {
   const navigate = useNavigate();
+
+  // =====================================================
+  // AUTH CONTEXT
+  // =====================================================
+
+  const { setToken } = useAuth();
+
+  // =====================================================
+  // STATES
+  // =====================================================
 
   const [formData, setFormData] = useState({
     email: "",
@@ -20,42 +32,45 @@ const Login = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState("");
+
   const [message, setMessage] = useState("");
 
-  // ==========================================
-  // GET REGISTERED EMAIL
-  // ==========================================
+  // =====================================================
+  // LOAD REGISTERED EMAIL
+  // =====================================================
 
   useEffect(() => {
     const registeredEmail =
       sessionStorage.getItem("registeredEmail");
 
     if (registeredEmail) {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData((previous) => ({
+        ...previous,
         email: registeredEmail,
       }));
 
       setMessage(
-        "Your email has been filled in. Please enter your password to continue."
+        "Account created successfully. Please login to continue."
       );
 
+      // Remove after using it
       sessionStorage.removeItem("registeredEmail");
     }
   }, []);
 
-  // ==========================================
-  // HANDLE INPUT
-  // ==========================================
+  // =====================================================
+  // HANDLE INPUT CHANGE
+  // =====================================================
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
 
-    setFormData((prev) => ({
-      ...prev,
+    setFormData((previous) => ({
+      ...previous,
       [name]: value,
     }));
 
@@ -63,254 +78,413 @@ const Login = () => {
     setMessage("");
   };
 
-  // ==========================================
-  // LOGIN
-  // ==========================================
+  // =====================================================
+  // HANDLE LOGIN
+  // =====================================================
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
     setError("");
     setMessage("");
 
-    const email = formData.email.trim().toLowerCase();
-    const password = formData.password;
+    const email =
+      formData.email.trim().toLowerCase();
+
+    const password =
+      formData.password;
+
+    // =====================================================
+    // VALIDATION
+    // =====================================================
 
     if (!email) {
-      setError("Please enter your email address.");
+      setError(
+        "Please enter your email address."
+      );
       return;
     }
 
     if (!password) {
-      setError("Please enter your password.");
+      setError(
+        "Please enter your password."
+      );
+      return;
+    }
+
+    // =====================================================
+    // BACKEND URL
+    // =====================================================
+
+    const backendUrl =
+      import.meta.env.VITE_BACKEND_URL;
+
+    if (!backendUrl) {
+      setError(
+        "Backend URL is not configured. Please check your environment variables."
+      );
       return;
     }
 
     try {
       setLoading(true);
 
-      console.log("Attempting login...");
-      console.log("Email:", email);
+      console.log(
+        "================================"
+      );
+
+      console.log(
+        "CUSTOMER LOGIN"
+      );
+
+      console.log(
+        "================================"
+      );
+
+      console.log(
+        "Email:",
+        email
+      );
+
+      console.log(
+        "Backend:",
+        backendUrl
+      );
+
+      // =====================================================
+      // CUSTOMER LOGIN API
+      // =====================================================
 
       const response = await axios.post(
-        "http://localhost:8005/api/user/login",
+        `${backendUrl}/api/user/login`,
         {
           email,
           password,
         },
         {
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
         }
       );
 
       console.log(
-        "========== LOGIN RESPONSE =========="
-      );
-
-      console.log(
-        "Status:",
-        response.status
-      );
-
-      console.log(
-        "Data:",
+        "Customer Login Response:",
         response.data
       );
 
-      // ==========================================
-      // CHECK SUCCESS
-      // ==========================================
+      // =====================================================
+      // LOGIN SUCCESS
+      // =====================================================
 
-      if (!response.data?.success) {
-        setError(
-          response.data?.message ||
-            "Invalid email or password."
-        );
+      if (
+        response.data?.success &&
+        response.data?.token
+      ) {
+        const token =
+          response.data.token;
 
-        return;
-      }
+        // =================================================
+        // UPDATE SHOP CONTEXT
+        // =================================================
 
-      // ==========================================
-      // GET TOKEN
-      // ==========================================
+        setToken(token);
 
-      const token =
-        response.data?.token;
+        // =================================================
+        // SAVE TOKEN
+        // =================================================
 
-      if (!token) {
-        console.error(
-          "Login succeeded but no token was returned."
-        );
-
-        console.error(
-          "Backend response:",
-          response.data
-        );
-
-        setError(
-          "Login succeeded, but the server did not return an authentication token."
-        );
-
-        return;
-      }
-
-      // ==========================================
-      // SAVE TOKEN
-      // ==========================================
-
-      localStorage.setItem(
-        "token",
-        token
-      );
-
-      // ==========================================
-      // SAVE USER
-      // ==========================================
-
-      const userData =
-        response.data?.user ||
-        response.data?.userData;
-
-      if (userData) {
         localStorage.setItem(
-          "user",
-          JSON.stringify(userData)
+          "token",
+          token
         );
+
+        console.log(
+          "Customer token saved:",
+          localStorage.getItem(
+            "token"
+          )
+        );
+
+        console.log(
+          "Customer login successful."
+        );
+
+        // =================================================
+        // REDIRECT TO CUSTOMER HOME PAGE
+        // =================================================
+
+        navigate("/", {
+          replace: true,
+        });
+
+        return;
       }
 
-      console.log(
-        "Token saved successfully."
-      );
+      // =====================================================
+      // LOGIN FAILED
+      // =====================================================
 
-      console.log(
-        "Token exists:",
-        !!localStorage.getItem("token")
-      );
-
-      // ==========================================
-      // SUCCESS
-      // ==========================================
-
-      setMessage(
+      setError(
         response.data?.message ||
-          "Login successful!"
+          "Invalid email or password."
       );
-
-      // Small delay so user sees success message
-      setTimeout(() => {
-        navigate("/");
-      }, 700);
 
     } catch (error) {
+
       console.error(
-        "========== LOGIN ERROR =========="
+        "Customer Login Error:",
+        error
       );
 
-      console.error(error);
+      // =====================================================
+      // BACKEND RESPONSE ERROR
+      // =====================================================
 
       if (error.response) {
+
         console.error(
           "Status:",
           error.response.status
         );
 
         console.error(
-          "Server response:",
+          "Response:",
           error.response.data
         );
 
         setError(
           error.response.data?.message ||
-            `Login failed (${error.response.status}).`
+            "Invalid email or password."
         );
 
-      } else if (error.request) {
-        console.error(
-          "No response received from server."
-        );
+      }
+
+      // =====================================================
+      // SERVER NOT AVAILABLE
+      // =====================================================
+
+      else if (error.request) {
 
         setError(
-          "Unable to connect to server. Please make sure your backend is running on port 8005."
+          "Unable to connect to the server. Please make sure the backend is running."
         );
 
-      } else {
+      }
+
+      // =====================================================
+      // OTHER ERROR
+      // =====================================================
+
+      else {
+
         setError(
-          error.message ||
-            "Something went wrong. Please try again."
+          "Something went wrong. Please try again."
         );
       }
 
     } finally {
+
       setLoading(false);
     }
   };
 
+  // =====================================================
+  // UI
+  // =====================================================
+
   return (
-    <div className="flex min-h-[80vh] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:py-12">
 
-        {/* LOGO */}
+      <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl lg:grid-cols-2">
 
-        <div className="mb-8 text-center">
+        {/* =================================================
+            LEFT SIDE
+        ================================================= */}
 
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg">
-            <Store size={28} />
+        <div className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+
+          {/* Background decorations */}
+
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+
+          <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-violet-400/20 blur-3xl" />
+
+          <div className="relative z-10">
+
+            {/* LOGO */}
+
+            <div className="mb-12 flex items-center gap-3">
+
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
+
+                <Store size={25} />
+
+              </div>
+
+              <div>
+
+                <h1 className="text-xl font-bold">
+                  ShopAdmin
+                </h1>
+
+                <p className="text-sm text-indigo-200">
+                  Ecommerce Store
+                </p>
+
+              </div>
+
+            </div>
+
+            {/* HEADING */}
+
+            <h2 className="max-w-md text-4xl font-bold leading-tight">
+
+              Welcome back to your shopping journey.
+
+            </h2>
+
+            <p className="mt-5 max-w-md text-sm leading-7 text-indigo-100">
+
+              Login to your account and continue
+              shopping with a secure and seamless
+              experience.
+
+            </p>
+
+            {/* FEATURES */}
+
+            <div className="mt-10 space-y-5">
+
+              <div className="flex items-center gap-4">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+
+                  <ShoppingBag size={20} />
+
+                </div>
+
+                <div>
+
+                  <p className="text-sm font-semibold">
+                    Easy Shopping
+                  </p>
+
+                  <p className="text-xs text-indigo-200">
+                    Browse and shop your favorite products
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div className="flex items-center gap-4">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+
+                  <Store size={20} />
+
+                </div>
+
+                <div>
+
+                  <p className="text-sm font-semibold">
+                    Secure Account
+                  </p>
+
+                  <p className="text-xs text-indigo-200">
+                    Your account is protected
+                  </p>
+
+                </div>
+
+              </div>
+
+            </div>
+
           </div>
 
-          <h1 className="mt-5 text-2xl font-bold text-slate-900">
-            ShopAdmin
-          </h1>
+          {/* FOOTER */}
 
-          <p className="mt-2 text-sm text-slate-500">
-            Sign in to continue shopping
+          <p className="relative z-10 text-sm text-indigo-200">
+
+            © 2026 ShopAdmin. All rights reserved.
+
           </p>
 
         </div>
 
-        {/* LOGIN CARD */}
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
+        {/* =================================================
+            RIGHT SIDE
+        ================================================= */}
 
-          <div className="mb-6">
+        <div className="p-6 sm:p-10 lg:p-12">
 
-            <h2 className="text-xl font-bold text-slate-900">
+          {/* HEADER */}
+
+          <div className="mb-8">
+
+            <h2 className="text-3xl font-bold text-slate-900">
+
               Welcome Back
+
             </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Enter your credentials to continue.
+            <p className="mt-2 text-sm text-slate-500">
+
+              Login to your account to continue shopping.
+
             </p>
 
           </div>
 
-          {/* MESSAGE */}
+
+          {/* SUCCESS MESSAGE */}
 
           {message && (
+
             <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+
               {message}
+
             </div>
+
           )}
 
-          {/* ERROR */}
+
+          {/* ERROR MESSAGE */}
 
           {error && (
+
             <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+
               {error}
+
             </div>
+
           )}
+
+
+          {/* LOGIN FORM */}
 
           <form
             onSubmit={handleSubmit}
             className="space-y-5"
           >
 
-            {/* EMAIL */}
+            {/* =================================================
+                EMAIL
+            ================================================= */}
 
             <div>
 
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
+              <label
+                htmlFor="email"
+                className="mb-2 block text-sm font-semibold text-slate-700"
+              >
                 Email Address
               </label>
 
@@ -318,133 +492,152 @@ const Login = () => {
 
                 <Mail
                   size={19}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
                 <input
-                  type="email"
+                  id="email"
                   name="email"
+                  type="email"
                   value={formData.email}
                   onChange={handleChange}
+                  placeholder="Enter your email address"
                   autoComplete="email"
-                  placeholder="Enter your email"
                   disabled={loading}
                   required
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
               </div>
 
             </div>
 
-            {/* PASSWORD */}
+
+            {/* =================================================
+                PASSWORD
+            ================================================= */}
 
             <div>
 
-              <div className="mb-2 flex items-center justify-between">
-
-                <label className="block text-sm font-semibold text-slate-700">
-                  Password
-                </label>
-
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
-                >
-                  Forgot Password?
-                </Link>
-
-              </div>
+              <label
+                htmlFor="password"
+                className="mb-2 block text-sm font-semibold text-slate-700"
+              >
+                Password
+              </label>
 
               <div className="relative">
 
                 <LockKeyhole
                   size={19}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
                 <input
+                  id="password"
+                  name="password"
                   type={
                     showPassword
                       ? "text"
                       : "password"
                   }
-                  name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  autoComplete="current-password"
                   placeholder="Enter your password"
+                  autoComplete="current-password"
                   disabled={loading}
                   required
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-12 text-sm outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-12 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 <button
                   type="button"
                   onClick={() =>
                     setShowPassword(
-                      (prev) => !prev
+                      (previous) =>
+                        !previous
                     )
                   }
                   disabled={loading}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed"
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
                 >
+
                   {showPassword ? (
                     <EyeOff size={19} />
                   ) : (
                     <Eye size={19} />
                   )}
+
                 </button>
 
               </div>
 
             </div>
 
-            {/* REMEMBER ME */}
 
-            <label className="flex cursor-pointer items-center gap-2">
+            {/* =================================================
+                FORGOT PASSWORD
+            ================================================= */}
 
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600"
-              />
+            <div className="flex justify-end">
 
-              <span className="text-sm text-slate-500">
-                Remember me
-              </span>
+              <Link
+                to="/forgot-password"
+                className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+              >
+                Forgot Password?
+              </Link>
 
-            </label>
+            </div>
 
-            {/* LOGIN */}
+
+            {/* =================================================
+                LOGIN BUTTON
+            ================================================= */}
 
             <button
               type="submit"
               disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-lg transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
 
               {loading ? (
+
                 <>
+
                   <Loader2
                     size={18}
                     className="animate-spin"
                   />
 
                   Signing In...
+
                 </>
+
               ) : (
-                "Sign In"
+
+                "Login to Shop"
+
               )}
 
             </button>
 
           </form>
 
-          {/* REGISTER */}
+
+          {/* =================================================
+              REGISTER
+          ================================================= */}
 
           <div className="mt-7 text-center">
 
             <p className="text-sm text-slate-500">
+
               Don't have an account?{" "}
 
               <Link
@@ -460,14 +653,10 @@ const Login = () => {
 
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          © 2026 ShopAdmin. All rights reserved.
-        </p>
-
       </div>
+
     </div>
   );
 };
 
 export default Login;
-

@@ -11,7 +11,7 @@ const PlaceOrder = () => {
   // BACKEND
   // ======================================================
 
-  const backendUrl = "http://localhost:8005";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   // ======================================================
   // STATE
