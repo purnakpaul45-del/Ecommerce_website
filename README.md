@@ -3,7 +3,12 @@
 
 
 A full-stack MERN ecommerce website with a customer-facing shopping application, an admin dashboard, product management, order management, authentication, coupons, and online payment integration.
+## 🌐 Live Demo
 
+| Application | Live URL |
+|------------|----------|
+| 🛍️ Customer Website | [Open Website](https://ecommercewebsite-6vz1wkxw6-purnakpaul45-dels-projects.vercel.app/) |
+| 🔐 Admin Panel | [Open Admin Panel](https://ecommerce-admin-lovat-three.vercel.app/) |
 
 
 \## 🚀 Features
