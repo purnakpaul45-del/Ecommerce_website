@@ -1,5 +1,6 @@
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 
-import React, { useMemo, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -12,737 +13,473 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
+  ResponsiveContainer,
 } from "recharts";
 
 import {
   IndianRupee,
   ShoppingCart,
   Users,
-  TrendingUp,
-  TrendingDown,
-  Package,
   RefreshCw,
   Download,
   CalendarDays,
   ChevronDown,
   ArrowUpRight,
-  ArrowDownRight,
   CheckCircle2,
   Clock3,
   Truck,
   XCircle,
-  AlertTriangle,
-  Eye,
-  MoreHorizontal,
-  Activity,
+  Package,
   CreditCard,
-  UserPlus,
+  Activity,
+  TrendingUp,
 } from "lucide-react";
 
+// =====================================================
+// COLORS
+// =====================================================
 
-// ======================================================
-// ANALYTICS DASHBOARD
-// ======================================================
+const STATUS_COLORS = {
+  Delivered: "#10b981",
+  Processing: "#f59e0b",
+  Shipped: "#3b82f6",
+  "Out for Delivery": "#06b6d4",
+  Packed: "#8b5cf6",
+  Cancelled: "#ef4444",
+  "Order Placed": "#64748b",
+};
+
+const CATEGORY_COLORS = [
+  "#4f46e5",
+  "#7c3aed",
+  "#0891b2",
+  "#059669",
+  "#d97706",
+  "#dc2626",
+];
+
+// =====================================================
+// ANALYTICS
+// =====================================================
 
 const Analytics = () => {
+  // ===================================================
+  // BACKEND
+  // ===================================================
 
-  // ======================================================
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  // ===================================================
   // STATE
-  // ======================================================
+  // ===================================================
 
-  const [period, setPeriod] = useState("30");
-  const [loading, setLoading] = useState(false);
+  const [period, setPeriod] = useState("7");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  // ===================================================
+  // FETCH DASHBOARD DATA
+  // ===================================================
 
-  // ======================================================
-  // DEMO REVENUE DATA
-  // Replace with API data later
-  // ======================================================
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  const analyticsData = {
+      const token = localStorage.getItem("adminToken");
 
-    "7": [
-      {
-        date: "Mon",
-        revenue: 18500,
-        orders: 22,
-        customers: 18,
-      },
-      {
-        date: "Tue",
-        revenue: 24200,
-        orders: 31,
-        customers: 24,
-      },
-      {
-        date: "Wed",
-        revenue: 19800,
-        orders: 27,
-        customers: 21,
-      },
-      {
-        date: "Thu",
-        revenue: 31500,
-        orders: 39,
-        customers: 32,
-      },
-      {
-        date: "Fri",
-        revenue: 28400,
-        orders: 35,
-        customers: 29,
-      },
-      {
-        date: "Sat",
-        revenue: 42100,
-        orders: 52,
-        customers: 44,
-      },
-      {
-        date: "Sun",
-        revenue: 48600,
-        orders: 61,
-        customers: 51,
-      },
-    ],
+      const response = await axios.get(
+        `${backendUrl}/api/dashboard`,
+        {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : {},
+        }
+      );
 
-    "30": [
-      {
-        date: "Week 1",
-        revenue: 118000,
-        orders: 142,
-        customers: 104,
-      },
-      {
-        date: "Week 2",
-        revenue: 146000,
-        orders: 176,
-        customers: 138,
-      },
-      {
-        date: "Week 3",
-        revenue: 172000,
-        orders: 204,
-        customers: 165,
-      },
-      {
-        date: "Week 4",
-        revenue: 218000,
-        orders: 261,
-        customers: 208,
-      },
-    ],
+      console.log("Analytics Response:", response.data);
 
-    "90": [
-      {
-        date: "Jan",
-        revenue: 385000,
-        orders: 461,
-        customers: 362,
-      },
-      {
-        date: "Feb",
-        revenue: 462000,
-        orders: 548,
-        customers: 431,
-      },
-      {
-        date: "Mar",
-        revenue: 576000,
-        orders: 692,
-        customers: 523,
-      },
-    ],
+      if (response.data?.success) {
+        setData(response.data.data);
+      } else {
+        setError(
+          response.data?.message ||
+            "Failed to load analytics."
+        );
+      }
+    } catch (err) {
+      console.error("Analytics Error:", err);
+      console.error(
+        "Server Response:",
+        err.response?.data
+      );
 
-    "365": [
-      {
-        date: "Jan",
-        revenue: 325000,
-        orders: 391,
-        customers: 302,
-      },
-      {
-        date: "Feb",
-        revenue: 368000,
-        orders: 432,
-        customers: 341,
-      },
-      {
-        date: "Mar",
-        revenue: 421000,
-        orders: 503,
-        customers: 386,
-      },
-      {
-        date: "Apr",
-        revenue: 462000,
-        orders: 548,
-        customers: 421,
-      },
-      {
-        date: "May",
-        revenue: 518000,
-        orders: 617,
-        customers: 468,
-      },
-      {
-        date: "Jun",
-        revenue: 574000,
-        orders: 689,
-        customers: 521,
-      },
-      {
-        date: "Jul",
-        revenue: 621000,
-        orders: 741,
-        customers: 568,
-      },
-      {
-        date: "Aug",
-        revenue: 698000,
-        orders: 826,
-        customers: 632,
-      },
-      {
-        date: "Sep",
-        revenue: 745000,
-        orders: 892,
-        customers: 684,
-      },
-      {
-        date: "Oct",
-        revenue: 812000,
-        orders: 963,
-        customers: 721,
-      },
-      {
-        date: "Nov",
-        revenue: 924000,
-        orders: 1092,
-        customers: 835,
-      },
-      {
-        date: "Dec",
-        revenue: 1085000,
-        orders: 1284,
-        customers: 962,
-      },
-    ],
-
+      setError(
+        err.response?.data?.message ||
+          "Failed to load analytics."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ===================================================
+  // INITIAL LOAD
+  // ===================================================
 
-  // ======================================================
-  // ORDER STATUS
-  // ======================================================
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
 
-  const orderStatusData = [
-    {
-      name: "Delivered",
-      value: 624,
-      icon: CheckCircle2,
-    },
-    {
-      name: "Processing",
-      value: 142,
-      icon: Clock3,
-    },
-    {
-      name: "Shipped",
-      value: 218,
-      icon: Truck,
-    },
-    {
-      name: "Cancelled",
-      value: 47,
-      icon: XCircle,
-    },
-  ];
+  // ===================================================
+  // FORMAT CURRENCY
+  // ===================================================
 
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(Number(value || 0));
+  };
 
-  // ======================================================
-  // CATEGORY SALES
-  // ======================================================
+  // ===================================================
+  // BASIC DATA
+  // ===================================================
 
-  const categoryData = [
-    {
-      category: "Men",
-      sales: 425000,
-    },
-    {
-      category: "Women",
-      sales: 368000,
-    },
-    {
-      category: "Kids",
-      sales: 192000,
-    },
-    {
-      category: "Accessories",
-      sales: 114000,
-    },
-  ];
-
-
-  // ======================================================
-  // TOP PRODUCTS
-  // ======================================================
-
-  const topProducts = [
-    {
-      id: "PRD-001",
-      name: "Premium Oversized T-Shirt",
-      category: "Men",
-      sold: 324,
-      revenue: 97200,
-      stock: 42,
-    },
-    {
-      id: "PRD-002",
-      name: "Classic Cotton Shirt",
-      category: "Men",
-      sold: 286,
-      revenue: 85800,
-      stock: 28,
-    },
-    {
-      id: "PRD-003",
-      name: "Women's Winter Jacket",
-      category: "Women",
-      sold: 241,
-      revenue: 120500,
-      stock: 19,
-    },
-    {
-      id: "PRD-004",
-      name: "Slim Fit Denim Jeans",
-      category: "Men",
-      sold: 218,
-      revenue: 76300,
-      stock: 35,
-    },
-    {
-      id: "PRD-005",
-      name: "Casual Summer Dress",
-      category: "Women",
-      sold: 194,
-      revenue: 67900,
-      stock: 14,
-    },
-  ];
-
-
-  // ======================================================
-  // RECENT TRANSACTIONS
-  // ======================================================
-
-  const recentOrders = [
-    {
-      id: "#ORD-1048",
-      customer: "Rahul Sharma",
-      amount: 2499,
-      status: "Delivered",
-      date: "Today, 10:42 AM",
-    },
-    {
-      id: "#ORD-1047",
-      customer: "Priya Das",
-      amount: 1899,
-      status: "Processing",
-      date: "Today, 09:18 AM",
-    },
-    {
-      id: "#ORD-1046",
-      customer: "Arjun Singh",
-      amount: 3499,
-      status: "Shipped",
-      date: "Yesterday",
-    },
-    {
-      id: "#ORD-1045",
-      customer: "Sneha Roy",
-      amount: 1299,
-      status: "Delivered",
-      date: "Yesterday",
-    },
-    {
-      id: "#ORD-1044",
-      customer: "Amit Paul",
-      amount: 4599,
-      status: "Cancelled",
-      date: "2 days ago",
-    },
-  ];
-
-
-  // ======================================================
-  // LOW STOCK PRODUCTS
-  // ======================================================
-
-  const lowStockProducts = [
-    {
-      name: "Casual Summer Dress",
-      stock: 4,
-    },
-    {
-      name: "Women's Winter Jacket",
-      stock: 7,
-    },
-    {
-      name: "Premium Sneakers",
-      stock: 9,
-    },
-  ];
-
-
-  // ======================================================
-  // CURRENT DATA
-  // ======================================================
-
-  const currentData =
-    analyticsData[period];
-
-
-  // ======================================================
-  // CALCULATIONS
-  // ======================================================
-
-  const totalRevenue = currentData.reduce(
-    (sum, item) =>
-      sum + item.revenue,
-    0
+  const totalRevenue = Number(
+    data?.totalRevenue || 0
   );
 
-  const totalOrders = currentData.reduce(
-    (sum, item) =>
-      sum + item.orders,
-    0
+  const totalOrders = Number(
+    data?.totalOrders || 0
   );
 
-  const totalCustomers = currentData.reduce(
-    (sum, item) =>
-      sum + item.customers,
-    0
+  const totalCustomers = Number(
+    data?.totalCustomers || 0
   );
+
+  const deliveredOrders = Number(
+    data?.deliveredOrders || 0
+  );
+
+  const processingOrders = Number(
+    data?.processingOrders || 0
+  );
+
+  const shippedOrders = Number(
+    data?.shippedOrders || 0
+  );
+
+  const cancelledOrders = Number(
+    data?.cancelledOrders || 0
+  );
+
+  // ===================================================
+  // AVERAGE ORDER VALUE
+  // ===================================================
 
   const averageOrderValue =
-    totalOrders > 0
-      ? totalRevenue / totalOrders
+    deliveredOrders > 0
+      ? totalRevenue / deliveredOrders
       : 0;
 
-  const conversionRate = 4.86;
+  // ===================================================
+  // CHART DATA
+  // ===================================================
 
+  const salesData = data?.salesData || [];
 
-  // ======================================================
-  // FORMAT CURRENCY
-  // ======================================================
+  const orderStatusData =
+    data?.orderStatusData || [];
 
-  const formatCurrency = (
-    value
-  ) => {
-    return new Intl.NumberFormat(
-      "en-IN",
-      {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 0,
-      }
-    ).format(value);
-  };
+  const categoryData =
+    data?.categoryData || [];
 
+  const topProducts =
+    data?.topProducts || [];
 
-  // ======================================================
-  // REFRESH
-  // ======================================================
+  const recentOrders =
+    data?.recentOrders || [];
 
-  const handleRefresh = () => {
+  // ===================================================
+  // FILTER SALES DATA
+  // ===================================================
 
-    setLoading(true);
+  const currentData = useMemo(() => {
+    if (!salesData.length) return [];
 
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    const numberOfDays = Number(period);
 
-  };
+    if (period === "365") {
+      return salesData;
+    }
 
+    return salesData.slice(
+      Math.max(
+        salesData.length - numberOfDays,
+        0
+      )
+    );
+  }, [salesData, period]);
 
-  // ======================================================
+  // ===================================================
+  // STATUS TOTAL
+  // ===================================================
+
+  const statusTotal = useMemo(() => {
+    return orderStatusData.reduce(
+      (total, item) =>
+        total + Number(item.value || 0),
+      0
+    );
+  }, [orderStatusData]);
+
+  // ===================================================
   // EXPORT
-  // ======================================================
+  // ===================================================
 
   const handleExport = () => {
-
     const report = {
       generatedAt:
         new Date().toISOString(),
 
       period,
 
-      totalRevenue,
+      summary: {
+        totalRevenue,
+        totalOrders,
+        totalCustomers,
+        deliveredOrders,
+        processingOrders,
+        shippedOrders,
+        cancelledOrders,
+        averageOrderValue,
+      },
 
-      totalOrders,
-
-      totalCustomers,
-
-      averageOrderValue,
-
-      conversionRate,
-
+      salesData: currentData,
+      orderStatusData,
+      categoryData,
       topProducts,
-
       recentOrders,
     };
 
-
-    const blob =
-      new Blob(
-        [
-          JSON.stringify(
-            report,
-            null,
-            2
-          ),
-        ],
-        {
-          type: "application/json",
-        }
-      );
-
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          report,
+          null,
+          2
+        ),
+      ],
+      {
+        type: "application/json",
+      }
+    );
 
     const url =
-      URL.createObjectURL(
-        blob
-      );
-
+      URL.createObjectURL(blob);
 
     const link =
-      document.createElement(
-        "a"
-      );
-
+      document.createElement("a");
 
     link.href = url;
 
     link.download =
       "ecommerce-analytics-report.json";
 
+    document.body.appendChild(link);
+
     link.click();
 
+    document.body.removeChild(link);
 
-    URL.revokeObjectURL(
-      url
-    );
-
+    URL.revokeObjectURL(url);
   };
 
+  // ===================================================
+  // STATUS ICON
+  // ===================================================
 
-  // ======================================================
-  // STAT CARDS
-  // ======================================================
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "Delivered":
+        return <CheckCircle2 size={15} />;
+
+      case "Processing":
+        return <Clock3 size={15} />;
+
+      case "Shipped":
+        return <Truck size={15} />;
+
+      case "Out for Delivery":
+        return <Truck size={15} />;
+
+      case "Packed":
+        return <Package size={15} />;
+
+      case "Cancelled":
+        return <XCircle size={15} />;
+
+      default:
+        return <Package size={15} />;
+    }
+  };
+
+  // ===================================================
+  // STATUS STYLE
+  // ===================================================
+
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "Delivered":
+        return "bg-emerald-50 text-emerald-700";
+
+      case "Processing":
+        return "bg-amber-50 text-amber-700";
+
+      case "Shipped":
+        return "bg-blue-50 text-blue-700";
+
+      case "Out for Delivery":
+        return "bg-cyan-50 text-cyan-700";
+
+      case "Packed":
+        return "bg-purple-50 text-purple-700";
+
+      case "Cancelled":
+        return "bg-red-50 text-red-700";
+
+      default:
+        return "bg-slate-100 text-slate-600";
+    }
+  };
+
+  // ===================================================
+  // LOADING
+  // ===================================================
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[600px] items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw
+            size={32}
+            className="animate-spin text-indigo-600"
+          />
+
+          <p className="text-sm font-medium text-slate-500">
+            Loading analytics...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ===================================================
+  // ERROR
+  // ===================================================
+
+  if (error) {
+    return (
+      <div className="flex min-h-[600px] items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <XCircle size={28} />
+          </div>
+
+          <h2 className="mt-4 text-lg font-bold text-slate-900">
+            Unable to load analytics
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            {error}
+          </p>
+
+          <button
+            type="button"
+            onClick={fetchAnalytics}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            <RefreshCw size={16} />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ===================================================
+  // KPI CARDS
+  // ===================================================
 
   const stats = [
-
     {
       title: "Total Revenue",
-
-      value:
-        formatCurrency(
-          totalRevenue
-        ),
-
-      change: "18.6%",
-
-      positive: true,
-
+      value: formatCurrency(totalRevenue),
       icon: IndianRupee,
-
-      subtitle:
-        "vs previous period",
+      description: "From delivered orders",
     },
-
-
     {
       title: "Total Orders",
-
-      value:
-        totalOrders.toLocaleString(),
-
-      change: "12.4%",
-
-      positive: true,
-
+      value: totalOrders.toLocaleString(),
       icon: ShoppingCart,
-
-      subtitle:
-        "orders received",
+      description: "All customer orders",
     },
-
-
     {
-      title: "New Customers",
-
-      value:
-        totalCustomers.toLocaleString(),
-
-      change: "9.8%",
-
-      positive: true,
-
-      icon: UserPlus,
-
-      subtitle:
-        "new registrations",
+      title: "Total Customers",
+      value: totalCustomers.toLocaleString(),
+      icon: Users,
+      description: "Registered customers",
     },
-
-
     {
       title: "Average Order Value",
-
-      value:
-        formatCurrency(
-          averageOrderValue
-        ),
-
-      change: "6.4%",
-
-      positive: true,
-
+      value: formatCurrency(
+        averageOrderValue
+      ),
       icon: CreditCard,
-
-      subtitle:
-        "average customer spend",
+      description: "Average delivered order",
     },
-
   ];
 
-
-  // ======================================================
-  // STATUS ICON
-  // ======================================================
-
-  const getStatusIcon = (
-    status
-  ) => {
-
-    if (
-      status ===
-      "Delivered"
-    ) {
-      return (
-        <CheckCircle2
-          size={15}
-        />
-      );
-    }
-
-    if (
-      status ===
-      "Processing"
-    ) {
-      return (
-        <Clock3
-          size={15}
-        />
-      );
-    }
-
-    if (
-      status ===
-      "Shipped"
-    ) {
-      return (
-        <Truck
-          size={15}
-        />
-      );
-    }
-
-    return (
-      <XCircle
-        size={15}
-      />
-    );
-
-  };
-
-
-  // ======================================================
-  // STATUS STYLE
-  // ======================================================
-
-  const getStatusStyle = (
-    status
-  ) => {
-
-    if (
-      status ===
-      "Delivered"
-    ) {
-      return "bg-emerald-50 text-emerald-700";
-    }
-
-    if (
-      status ===
-      "Processing"
-    ) {
-      return "bg-amber-50 text-amber-700";
-    }
-
-    if (
-      status ===
-      "Shipped"
-    ) {
-      return "bg-blue-50 text-blue-700";
-    }
-
-    return "bg-red-50 text-red-700";
-
-  };
-
+  // ===================================================
+  // UI
+  // ===================================================
 
   return (
-
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
 
-
-      {/* ==================================================
+      {/* =================================================
           HEADER
-      ================================================== */}
+      ================================================= */}
 
       <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
 
-
         <div>
+          <div className="flex flex-wrap items-center gap-3">
 
-          <div className="flex items-center gap-3">
-
-            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
               Analytics Overview
             </h1>
 
-            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-
               Live Data
-
             </span>
 
           </div>
 
-
           <p className="mt-2 text-sm text-slate-500">
-            Track your store performance,
-            revenue, customers and orders.
+            Monitor your store performance,
+            orders and revenue in real time.
           </p>
-
         </div>
 
-
         <div className="flex flex-wrap gap-3">
-
 
           {/* PERIOD */}
 
@@ -753,17 +490,13 @@ const Analytics = () => {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
             />
 
-
             <select
               value={period}
               onChange={(e) =>
-                setPeriod(
-                  e.target.value
-                )
+                setPeriod(e.target.value)
               }
-              className="h-11 appearance-none rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-500"
+              className="h-11 appearance-none rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm font-semibold text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             >
-
               <option value="7">
                 Last 7 Days
               </option>
@@ -779,9 +512,7 @@ const Analytics = () => {
               <option value="365">
                 Last 12 Months
               </option>
-
             </select>
-
 
             <ChevronDown
               size={16}
@@ -790,685 +521,757 @@ const Analytics = () => {
 
           </div>
 
-
           {/* REFRESH */}
 
           <button
-            onClick={
-              handleRefresh
-            }
-            className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            type="button"
+            onClick={fetchAnalytics}
+            className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
           >
-
-            <RefreshCw
-              size={17}
-              className={
-                loading
-                  ? "animate-spin"
-                  : ""
-              }
-            />
-
+            <RefreshCw size={17} />
             Refresh
-
           </button>
-
 
           {/* EXPORT */}
 
           <button
-            onClick={
-              handleExport
-            }
-            className="flex h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
+            type="button"
+            onClick={handleExport}
+            className="flex h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
           >
-
-            <Download
-              size={17}
-            />
-
-            Export Report
-
+            <Download size={17} />
+            Export
           </button>
 
         </div>
-
       </div>
 
-
-      {/* ==================================================
+      {/* =================================================
           KPI CARDS
-      ================================================== */}
+      ================================================= */}
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
 
+        {stats.map((stat) => {
+          const Icon = stat.icon;
 
-        {stats.map(
-          (stat) => {
+          return (
+            <div
+              key={stat.title}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
 
-            const Icon =
-              stat.icon;
+              <div className="flex items-start justify-between">
 
+                <div>
+                  <p className="text-sm font-medium text-slate-500">
+                    {stat.title}
+                  </p>
 
-            return (
+                  <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">
+                    {stat.value}
+                  </h2>
 
-              <div
-                key={
-                  stat.title
-                }
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-              >
-
-
-                <div className="flex items-start justify-between">
-
-
-                  <div>
-
-                    <p className="text-sm font-medium text-slate-500">
-                      {stat.title}
-                    </p>
-
-
-                    <h2 className="mt-3 text-2xl font-bold text-slate-900">
-                      {stat.value}
-                    </h2>
-
-                  </div>
-
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-
-                    <Icon
-                      size={22}
-                    />
-
-                  </div>
-
+                  <p className="mt-2 text-xs text-slate-400">
+                    {stat.description}
+                  </p>
                 </div>
 
-
-                <div className="mt-5 flex items-center gap-2">
-
-                  <span className="flex items-center gap-1 text-xs font-bold text-emerald-600">
-
-                    <ArrowUpRight
-                      size={14}
-                    />
-
-                    {stat.change}
-
-                  </span>
-
-
-                  <span className="text-xs text-slate-400">
-
-                    {stat.subtitle}
-
-                  </span>
-
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <Icon size={22} />
                 </div>
 
               </div>
 
-            );
+              <div className="mt-5 flex items-center gap-2">
+                <ArrowUpRight
+                  size={14}
+                  className="text-emerald-600"
+                />
 
-          }
-        )}
+                <span className="text-xs font-bold text-emerald-600">
+                  Live
+                </span>
+
+                <span className="text-xs text-slate-400">
+                  database data
+                </span>
+              </div>
+
+            </div>
+          );
+        })}
 
       </div>
 
-
-      {/* ==================================================
-          MAIN REVENUE SECTION
-      ================================================== */}
+      {/* =================================================
+          REVENUE + ORDER SUMMARY
+      ================================================= */}
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
 
+        {/* =================================================
+            REVENUE PERFORMANCE
+        ================================================= */}
 
-        {/* REVENUE CHART */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2 sm:p-6">
-
-
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
             <div>
-
               <h2 className="text-lg font-bold text-slate-900">
                 Revenue Performance
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Revenue growth across the selected period.
+                Revenue generated from delivered
+                orders.
               </p>
-
             </div>
 
-
-            <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
-
-              <TrendingUp
-                size={17}
-              />
-
-              +18.6%
-
+            <div className="flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
+              <TrendingUp size={15} />
+              Revenue
             </div>
 
           </div>
 
+          <div className="mt-6 h-[350px]">
 
-          <div className="h-[350px]">
-
-
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-
-              <AreaChart
-                data={
-                  currentData
-                }
-              >
-
-                <defs>
-
-                  <linearGradient
-                    id="revenueArea"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-
-                    <stop
-                      offset="5%"
-                      stopOpacity={
-                        0.25
-                      }
-                    />
-
-                    <stop
-                      offset="95%"
-                      stopOpacity={
-                        0
-                      }
-                    />
-
-                  </linearGradient>
-
-                </defs>
-
-
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#e2e8f0"
-                />
-
-
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fontSize: 12,
-                    fill: "#64748b",
-                  }}
-                />
-
-
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fontSize: 12,
-                    fill: "#64748b",
-                  }}
-                  tickFormatter={(
-                    value
-                  ) =>
-                    `₹${(
-                      value /
-                      1000
-                    ).toFixed(
-                      0
-                    )}k`
-                  }
-                />
-
-
-                <Tooltip
-                  formatter={(
-                    value
-                  ) =>
-                    formatCurrency(
-                      value
-                    )
-                  }
-                />
-
-
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#4f46e5"
-                  strokeWidth={3}
-                  fill="url(#revenueArea)"
-                />
-
-              </AreaChart>
-
-            </ResponsiveContainer>
-
-          </div>
-
-        </div>
-
-
-        {/* PERFORMANCE SUMMARY */}
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-
-
-          <div className="mb-6">
-
-            <h2 className="text-lg font-bold text-slate-900">
-              Performance Summary
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Key business indicators.
-            </p>
-
-          </div>
-
-
-          <div className="space-y-6">
-
-
-            {/* CONVERSION */}
-
-            <div>
-
-              <div className="mb-2 flex justify-between">
-
-                <span className="text-sm font-medium text-slate-600">
-                  Conversion Rate
-                </span>
-
-                <span className="text-sm font-bold text-slate-900">
-                  {conversionRate}%
-                </span>
-
-              </div>
-
-
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-
-                <div
-                  className="h-full rounded-full bg-indigo-600"
-                  style={{
-                    width:
-                      `${conversionRate * 10}%`,
-                  }}
-                />
-
-              </div>
-
-            </div>
-
-
-            {/* AOV */}
-
-            <div className="rounded-xl bg-slate-50 p-4">
-
-              <div className="flex items-center gap-3">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-
-                  <CreditCard
-                    size={18}
-                  />
-
-                </div>
-
-
-                <div>
-
-                  <p className="text-xs text-slate-500">
-                    Average Order Value
-                  </p>
-
-                  <p className="mt-1 text-lg font-bold text-slate-900">
-
-                    {formatCurrency(
-                      averageOrderValue
-                    )}
-
-                  </p>
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-            {/* CUSTOMER GROWTH */}
-
-            <div className="rounded-xl bg-slate-50 p-4">
-
-              <div className="flex items-center gap-3">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-
-                  <Users
-                    size={18}
-                  />
-
-                </div>
-
-
-                <div>
-
-                  <p className="text-xs text-slate-500">
-                    Customer Growth
-                  </p>
-
-                  <p className="mt-1 flex items-center gap-1 text-lg font-bold text-slate-900">
-
-                    +9.8%
-
-                    <TrendingUp
-                      size={16}
-                      className="text-emerald-500"
-                    />
-
-                  </p>
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-            {/* ORDER GROWTH */}
-
-            <div className="rounded-xl bg-slate-50 p-4">
-
-              <div className="flex items-center gap-3">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-
-                  <ShoppingCart
-                    size={18}
-                  />
-
-                </div>
-
-
-                <div>
-
-                  <p className="text-xs text-slate-500">
-                    Order Growth
-                  </p>
-
-                  <p className="mt-1 flex items-center gap-1 text-lg font-bold text-slate-900">
-
-                    +12.4%
-
-                    <TrendingUp
-                      size={16}
-                      className="text-emerald-500"
-                    />
-
-                  </p>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      {/* ==================================================
-          CHART GRID
-      ================================================== */}
-
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
-
-
-        {/* ORDER STATUS */}
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-
-
-          <div className="mb-6">
-
-            <h2 className="text-lg font-bold text-slate-900">
-              Order Status
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Current order fulfillment breakdown.
-            </p>
-
-          </div>
-
-
-          <div className="flex flex-col items-center gap-6 sm:flex-row">
-
-
-            <div className="h-64 w-full sm:w-1/2">
+            {currentData.length > 0 ? (
 
               <ResponsiveContainer
                 width="100%"
                 height="100%"
               >
 
-                <PieChart>
+                <AreaChart
+                  data={currentData}
+                  margin={{
+                    top: 10,
+                    right: 10,
+                    left: 0,
+                    bottom: 0,
+                  }}
+                >
 
-                  <Pie
-                    data={
-                      orderStatusData
+                  <defs>
+
+                    <linearGradient
+                      id="revenueGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+
+                      <stop
+                        offset="0%"
+                        stopColor="#4f46e5"
+                        stopOpacity={0.35}
+                      />
+
+                      <stop
+                        offset="100%"
+                        stopColor="#4f46e5"
+                        stopOpacity={0.02}
+                      />
+
+                    </linearGradient>
+
+                  </defs>
+
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#e2e8f0"
+                  />
+
+                  <XAxis
+                    dataKey="day"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "#64748b",
+                      fontSize: 12,
+                    }}
+                  />
+
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "#64748b",
+                      fontSize: 12,
+                    }}
+                    tickFormatter={(value) =>
+                      `₹${(
+                        Number(value) / 1000
+                      ).toFixed(0)}k`
                     }
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={
-                      65
-                    }
-                    outerRadius={
-                      95
-                    }
-                    paddingAngle={
-                      4
-                    }
-                  >
+                  />
 
-                    {orderStatusData.map(
-                      (
-                        _,
-                        index
-                      ) => (
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border: "1px solid #e2e8f0",
+                      boxShadow:
+                        "0 10px 30px rgba(0,0,0,0.08)",
+                    }}
+                    formatter={(value) => [
+                      formatCurrency(value),
+                      "Revenue",
+                    ]}
+                  />
 
-                        <Cell
-                          key={
-                            index
-                          }
-                        />
+                  <Area
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="#4f46e5"
+                    strokeWidth={3}
+                    fill="url(#revenueGradient)"
+                    dot={{
+                      r: 3,
+                      strokeWidth: 2,
+                    }}
+                    activeDot={{
+                      r: 6,
+                    }}
+                  />
 
-                      )
-                    )}
-
-                  </Pie>
-
-                  <Tooltip />
-
-                </PieChart>
+                </AreaChart>
 
               </ResponsiveContainer>
 
-            </div>
+            ) : (
 
+              <div className="flex h-full flex-col items-center justify-center">
 
-            <div className="w-full space-y-4 sm:w-1/2">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 text-indigo-500">
+                  <IndianRupee size={30} />
+                </div>
 
-              {orderStatusData.map(
-                (
-                  item
-                ) => {
+                <p className="mt-4 text-sm font-semibold text-slate-600">
+                  No revenue data available
+                </p>
 
-                  const Icon =
-                    item.icon;
+                <p className="mt-1 text-xs text-slate-400">
+                  Mark orders as Delivered to
+                  generate revenue.
+                </p>
 
+              </div>
 
-                  return (
-
-                    <div
-                      key={
-                        item.name
-                      }
-                      className="flex items-center justify-between"
-                    >
-
-                      <div className="flex items-center gap-3">
-
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-
-                          <Icon
-                            size={17}
-                          />
-
-                        </div>
-
-
-                        <span className="text-sm font-medium text-slate-700">
-
-                          {
-                            item.name
-                          }
-
-                        </span>
-
-                      </div>
-
-
-                      <span className="text-sm font-bold text-slate-900">
-
-                        {
-                          item.value
-                        }
-
-                      </span>
-
-                    </div>
-
-                  );
-
-                }
-              )}
-
-            </div>
+            )}
 
           </div>
-
         </div>
 
+        {/* =================================================
+            ORDER SUMMARY
+        ================================================= */}
 
-        {/* CATEGORY SALES */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-
-
-          <div className="mb-6">
-
+          <div>
             <h2 className="text-lg font-bold text-slate-900">
-              Sales by Category
+              Order Summary
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Revenue contribution by category.
+              Current order activity.
             </p>
+          </div>
+
+          <div className="mt-6 space-y-4">
+
+            {/* DELIVERED */}
+
+            <div className="flex items-center justify-between rounded-xl bg-emerald-50 p-4">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm">
+                  <CheckCircle2 size={19} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-emerald-700">
+                    Delivered
+                  </p>
+
+                  <p className="mt-1 text-xl font-bold text-emerald-900">
+                    {deliveredOrders}
+                  </p>
+                </div>
+
+              </div>
+
+              <span className="text-xs font-semibold text-emerald-600">
+                Completed
+              </span>
+
+            </div>
+
+            {/* PROCESSING */}
+
+            <div className="flex items-center justify-between rounded-xl bg-amber-50 p-4">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-amber-600 shadow-sm">
+                  <Clock3 size={19} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-amber-700">
+                    Processing
+                  </p>
+
+                  <p className="mt-1 text-xl font-bold text-amber-900">
+                    {processingOrders}
+                  </p>
+                </div>
+
+              </div>
+
+              <span className="text-xs font-semibold text-amber-600">
+                Pending
+              </span>
+
+            </div>
+
+            {/* SHIPPED */}
+
+            <div className="flex items-center justify-between rounded-xl bg-blue-50 p-4">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                  <Truck size={19} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-blue-700">
+                    Shipped
+                  </p>
+
+                  <p className="mt-1 text-xl font-bold text-blue-900">
+                    {shippedOrders}
+                  </p>
+                </div>
+
+              </div>
+
+              <span className="text-xs font-semibold text-blue-600">
+                In transit
+              </span>
+
+            </div>
+
+            {/* CANCELLED */}
+
+            <div className="flex items-center justify-between rounded-xl bg-red-50 p-4">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-red-600 shadow-sm">
+                  <XCircle size={19} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-red-700">
+                    Cancelled
+                  </p>
+
+                  <p className="mt-1 text-xl font-bold text-red-900">
+                    {cancelledOrders}
+                  </p>
+                </div>
+
+              </div>
+
+              <span className="text-xs font-semibold text-red-600">
+                Cancelled
+              </span>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* =================================================
+          ORDER STATUS + CATEGORY
+      ================================================= */}
+
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+
+        {/* =================================================
+            ORDER STATUS PIE
+        ================================================= */}
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+          <div className="flex items-start justify-between">
+
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Order Status
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Distribution of all current orders.
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+              {statusTotal} Orders
+            </div>
 
           </div>
 
+          {orderStatusData.length > 0 ? (
 
-          <div className="h-64">
+            <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
 
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
+              {/* DONUT */}
 
-              <BarChart
-                data={
-                  categoryData
-                }
+              <div className="relative h-[280px]">
+
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
+
+                  <PieChart>
+
+                    <Pie
+                      data={orderStatusData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={68}
+                      outerRadius={100}
+                      paddingAngle={3}
+                      stroke="#ffffff"
+                      strokeWidth={3}
+                    >
+
+                      {orderStatusData.map(
+                        (item, index) => (
+                          <Cell
+                            key={`${item.name}-${index}`}
+                            fill={
+                              STATUS_COLORS[
+                                item.name
+                              ] ||
+                              STATUS_COLORS[
+                                Object.keys(
+                                  STATUS_COLORS
+                                )[index %
+                                  Object.keys(
+                                    STATUS_COLORS
+                                  ).length]
+                              ]
+                            }
+                          />
+                        )
+                      )}
+
+                    </Pie>
+
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "12px",
+                        border:
+                          "1px solid #e2e8f0",
+                      }}
+                      formatter={(value, name) => [
+                        `${value} orders`,
+                        name,
+                      ]}
+                    />
+
+                  </PieChart>
+
+                </ResponsiveContainer>
+
+                {/* CENTER VALUE */}
+
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+
+                  <p className="text-3xl font-bold text-slate-900">
+                    {statusTotal}
+                  </p>
+
+                  <p className="text-xs font-medium text-slate-400">
+                    Total Orders
+                  </p>
+
+                </div>
+
+              </div>
+
+              {/* LEGEND */}
+
+              <div className="flex flex-col justify-center space-y-4">
+
+                {orderStatusData.map(
+                  (item, index) => {
+
+                    const percentage =
+                      statusTotal > 0
+                        ? (
+                            (Number(
+                              item.value
+                            ) /
+                              statusTotal) *
+                            100
+                          ).toFixed(1)
+                        : 0;
+
+                    const color =
+                      STATUS_COLORS[
+                        item.name
+                      ] ||
+                      STATUS_COLORS[
+                        Object.keys(
+                          STATUS_COLORS
+                        )[index %
+                          Object.keys(
+                            STATUS_COLORS
+                          ).length]
+                      ];
+
+                    return (
+                      <div
+                        key={`${item.name}-${index}`}
+                        className="rounded-xl border border-slate-100 p-3"
+                      >
+
+                        <div className="flex items-center justify-between">
+
+                          <div className="flex items-center gap-3">
+
+                            <span
+                              className="h-3 w-3 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  color,
+                              }}
+                            />
+
+                            <span className="text-sm font-semibold text-slate-700">
+                              {item.name}
+                            </span>
+
+                          </div>
+
+                          <span className="text-sm font-bold text-slate-900">
+                            {item.value}
+                          </span>
+
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between">
+
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${percentage}%`,
+                                backgroundColor:
+                                  color,
+                              }}
+                            />
+
+                          </div>
+
+                          <span className="ml-3 w-10 text-right text-xs font-semibold text-slate-400">
+                            {percentage}%
+                          </span>
+
+                        </div>
+
+                      </div>
+                    );
+                  }
+                )}
+
+              </div>
+
+            </div>
+
+          ) : (
+
+            <div className="flex h-[280px] flex-col items-center justify-center">
+
+              <Package
+                size={42}
+                className="text-slate-300"
+              />
+
+              <p className="mt-4 text-sm font-semibold text-slate-500">
+                No order status data
+              </p>
+
+              <p className="mt-1 text-xs text-slate-400">
+                Order status information will
+                appear here.
+              </p>
+
+            </div>
+
+          )}
+
+        </div>
+
+        {/* =================================================
+            CATEGORY BAR GRAPH
+        ================================================= */}
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+          <div className="flex items-start justify-between">
+
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Sales by Category
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Revenue generated by product category.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
+              <IndianRupee size={14} />
+              Sales
+            </div>
+
+          </div>
+
+          <div className="mt-6 h-[310px]">
+
+            {categoryData.length > 0 ? (
+
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
               >
 
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
+                <BarChart
+                  data={categoryData}
+                  margin={{
+                    top: 10,
+                    right: 10,
+                    left: 0,
+                    bottom: 10,
+                  }}
+                  barCategoryGap="25%"
+                >
+
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#e2e8f0"
+                  />
+
+                  <XAxis
+                    dataKey="category"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "#64748b",
+                      fontSize: 12,
+                    }}
+                  />
+
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "#64748b",
+                      fontSize: 12,
+                    }}
+                    tickFormatter={(value) =>
+                      `₹${(
+                        Number(value) / 1000
+                      ).toFixed(0)}k`
+                    }
+                  />
+
+                  <Tooltip
+                    cursor={{
+                      fill: "#f8fafc",
+                    }}
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border:
+                        "1px solid #e2e8f0",
+                      boxShadow:
+                        "0 10px 30px rgba(0,0,0,0.08)",
+                    }}
+                    formatter={(value) => [
+                      formatCurrency(value),
+                      "Sales",
+                    ]}
+                  />
+
+                  <Bar
+                    dataKey="sales"
+                    radius={[
+                      8,
+                      8,
+                      0,
+                      0,
+                    ]}
+                  >
+
+                    {categoryData.map(
+                      (item, index) => (
+                        <Cell
+                          key={`${item.category}-${index}`}
+                          fill={
+                            CATEGORY_COLORS[
+                              index %
+                                CATEGORY_COLORS.length
+                            ]
+                          }
+                        />
+                      )
+                    )}
+
+                  </Bar>
+
+                </BarChart>
+
+              </ResponsiveContainer>
+
+            ) : (
+
+              <div className="flex h-full flex-col items-center justify-center">
+
+                <Package
+                  size={42}
+                  className="text-slate-300"
                 />
 
+                <p className="mt-4 text-sm font-semibold text-slate-500">
+                  No category sales yet
+                </p>
 
-                <XAxis
-                  dataKey="category"
-                  axisLine={false}
-                  tickLine={false}
-                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Delivered orders will appear
+                  here.
+                </p>
 
+              </div>
 
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(
-                    value
-                  ) =>
-                    `₹${value / 1000}k`
-                  }
-                />
-
-
-                <Tooltip
-                  formatter={(
-                    value
-                  ) =>
-                    formatCurrency(
-                      value
-                    )
-                  }
-                />
-
-
-                <Bar
-                  dataKey="sales"
-                  fill="#4f46e5"
-                  radius={[
-                    8,
-                    8,
-                    0,
-                    0,
-                  ]}
-                  barSize={
-                    45
-                  }
-                />
-
-              </BarChart>
-
-            </ResponsiveContainer>
+            )}
 
           </div>
 
@@ -1476,474 +1279,283 @@ const Analytics = () => {
 
       </div>
 
+      {/* =================================================
+          TOP PRODUCTS
+      ================================================= */}
 
-      {/* ==================================================
-          BOTTOM SECTION
-      ================================================== */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex items-center justify-between border-b border-slate-100 p-5">
 
+          <div className="flex items-center gap-3">
 
-        {/* TOP PRODUCTS */}
-
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
-
-
-          <div className="flex items-center justify-between border-b border-slate-100 p-5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <Package size={21} />
+            </div>
 
             <div>
-
               <h2 className="text-lg font-bold text-slate-900">
                 Top Selling Products
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Best performing products by revenue.
+                Best performing products based
+                on delivered orders.
+              </p>
+            </div>
+
+          </div>
+
+          <span className="hidden rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500 sm:block">
+            Top Products
+          </span>
+
+        </div>
+
+        <div className="divide-y divide-slate-100">
+
+          {topProducts.length > 0 ? (
+
+            topProducts.map(
+              (product, index) => (
+
+                <div
+                  key={
+                    product._id ||
+                    product.id ||
+                    `${product.name}-${index}`
+                  }
+                  className="flex items-center gap-4 p-5 transition hover:bg-slate-50"
+                >
+
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 font-bold text-indigo-600">
+                    {index + 1}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+
+                    <p className="truncate text-sm font-semibold text-slate-800">
+                      {product.name ||
+                        "Unknown Product"}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      {product.sales || 0} units sold
+                    </p>
+
+                  </div>
+
+                  <div className="text-right">
+
+                    <p className="text-sm font-bold text-slate-800">
+                      {formatCurrency(
+                        product.revenue
+                      )}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Revenue
+                    </p>
+
+                  </div>
+
+                </div>
+              )
+            )
+
+          ) : (
+
+            <div className="p-10 text-center">
+
+              <Package
+                size={40}
+                className="mx-auto text-slate-300"
+              />
+
+              <p className="mt-3 text-sm font-semibold text-slate-500">
+                No product sales yet
+              </p>
+
+              <p className="mt-1 text-xs text-slate-400">
+                Products from delivered orders
+                will appear here.
               </p>
 
             </div>
 
-
-            <button className="flex items-center gap-1 text-sm font-bold text-indigo-600 hover:text-indigo-700">
-
-              View All
-
-              <ArrowUpRight
-                size={16}
-              />
-
-            </button>
-
-          </div>
-
-
-          <div className="overflow-x-auto">
-
-            <table className="w-full">
-
-              <thead>
-
-                <tr className="border-b border-slate-100 bg-slate-50">
-
-                  <th className="px-5 py-4 text-left text-xs font-bold uppercase text-slate-500">
-                    Product
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-xs font-bold uppercase text-slate-500">
-                    Category
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-xs font-bold uppercase text-slate-500">
-                    Sold
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-xs font-bold uppercase text-slate-500">
-                    Stock
-                  </th>
-
-                  <th className="px-5 py-4 text-right text-xs font-bold uppercase text-slate-500">
-                    Revenue
-                  </th>
-
-                </tr>
-
-              </thead>
-
-
-              <tbody>
-
-                {topProducts.map(
-                  (
-                    product,
-                    index
-                  ) => (
-
-                    <tr
-                      key={
-                        product.id
-                      }
-                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
-                    >
-
-                      <td className="px-5 py-4">
-
-                        <div className="flex items-center gap-3">
-
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-600">
-
-                            #
-                            {
-                              index +
-                              1
-                            }
-
-                          </div>
-
-
-                          <div>
-
-                            <p className="text-sm font-semibold text-slate-800">
-
-                              {
-                                product.name
-                              }
-
-                            </p>
-
-
-                            <p className="mt-1 text-xs text-slate-400">
-
-                              {
-                                product.id
-                              }
-
-                            </p>
-
-                          </div>
-
-                        </div>
-
-                      </td>
-
-
-                      <td className="px-5 py-4 text-sm text-slate-600">
-
-                        {
-                          product.category
-                        }
-
-                      </td>
-
-
-                      <td className="px-5 py-4 text-sm font-semibold text-slate-700">
-
-                        {
-                          product.sold
-                        }
-
-                      </td>
-
-
-                      <td className="px-5 py-4">
-
-                        <span
-                          className={`text-sm font-bold ${
-                            product.stock <
-                            10
-                              ? "text-red-600"
-                              : "text-emerald-600"
-                          }`}
-                        >
-
-                          {
-                            product.stock
-                          }
-
-                        </span>
-
-                      </td>
-
-
-                      <td className="px-5 py-4 text-right text-sm font-bold text-slate-900">
-
-                        {
-                          formatCurrency(
-                            product.revenue
-                          )
-                        }
-
-                      </td>
-
-                    </tr>
-
-                  )
-                )}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        </div>
-
-
-        {/* LOW STOCK */}
-
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-
-          <div className="border-b border-slate-100 p-5">
-
-            <div className="flex items-center gap-3">
-
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-
-                <AlertTriangle
-                  size={20}
-                />
-
-              </div>
-
-
-              <div>
-
-                <h2 className="font-bold text-slate-900">
-                  Low Stock Alert
-                </h2>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Products that need attention.
-                </p>
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-          <div className="divide-y divide-slate-100">
-
-            {lowStockProducts.map(
-              (
-                product
-              ) => (
-
-                <div
-                  key={
-                    product.name
-                  }
-                  className="flex items-center justify-between p-4"
-                >
-
-                  <div className="flex items-center gap-3">
-
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
-
-                      <Package
-                        size={17}
-                        className="text-slate-500"
-                      />
-
-                    </div>
-
-
-                    <div>
-
-                      <p className="text-sm font-semibold text-slate-800">
-
-                        {
-                          product.name
-                        }
-
-                      </p>
-
-
-                      <p className="mt-1 text-xs text-slate-400">
-
-                        Only {
-                          product.stock
-                        } units remaining
-
-                      </p>
-
-                    </div>
-
-                  </div>
-
-
-                  <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-600">
-
-                    Low Stock
-
-                  </span>
-
-                </div>
-
-              )
-            )}
-
-          </div>
-
-
-          <div className="border-t border-slate-100 p-4">
-
-            <button className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
-
-              Manage Inventory
-
-            </button>
-
-          </div>
+          )}
 
         </div>
 
       </div>
 
+      {/* =================================================
+          RECENT TRANSACTIONS
+      ================================================= */}
 
-      {/* ==================================================
-          RECENT ORDERS
-      ================================================== */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 p-5">
 
+          <div className="flex items-center gap-3">
 
-        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <CreditCard size={19} />
+            </div>
 
-          <div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Recent Transactions
+              </h2>
 
-            <h2 className="text-lg font-bold text-slate-900">
-              Recent Transactions
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Latest customer orders and payments.
-            </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Latest customer orders.
+              </p>
+            </div>
 
           </div>
 
-
-          <button className="flex items-center gap-2 text-sm font-bold text-indigo-600">
-
-            View All Orders
-
-            <ArrowUpRight
-              size={16}
-            />
-
-          </button>
-
         </div>
-
 
         <div className="overflow-x-auto">
 
-          <table className="w-full">
+          <table className="w-full min-w-[850px]">
 
             <thead>
 
               <tr className="border-b border-slate-100 bg-slate-50">
 
-                <th className="px-5 py-4 text-left text-xs font-bold uppercase text-slate-500">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Order
                 </th>
 
-                <th className="px-5 py-4 text-left text-xs font-bold uppercase text-slate-500">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Customer
                 </th>
 
-                <th className="px-5 py-4 text-left text-xs font-bold uppercase text-slate-500">
-                  Date
-                </th>
-
-                <th className="px-5 py-4 text-left text-xs font-bold uppercase text-slate-500">
-                  Status
-                </th>
-
-                <th className="px-5 py-4 text-right text-xs font-bold uppercase text-slate-500">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Amount
                 </th>
 
-                <th className="px-5 py-4 text-right text-xs font-bold uppercase text-slate-500">
-                  Action
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Payment
+                </th>
+
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Status
                 </th>
 
               </tr>
 
             </thead>
 
-
             <tbody>
 
-              {recentOrders.map(
-                (
-                  order
-                ) => (
+              {recentOrders.length > 0 ? (
 
-                  <tr
-                    key={
-                      order.id
-                    }
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                recentOrders.map(
+                  (order, index) => (
+
+                    <tr
+                      key={
+                        order.id ||
+                        order._id ||
+                        index
+                      }
+                      className="border-b border-slate-100 transition hover:bg-slate-50"
+                    >
+
+                      <td className="px-5 py-4">
+
+                        <span className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-600">
+                          #{String(
+                            order.id ||
+                              order._id ||
+                              ""
+                          ).slice(-8)}
+                        </span>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <p className="text-sm font-semibold text-slate-700">
+                          {order.customer ||
+                            "Customer"}
+                        </p>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <p className="text-sm font-bold text-slate-900">
+                          {formatCurrency(
+                            order.amount
+                          )}
+                        </p>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <p className="text-sm font-medium text-slate-700">
+                          {order.paymentMethod ||
+                            "COD"}
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-400">
+                          {order.paymentStatus ||
+                            "Pending"}
+                        </p>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${getStatusStyle(
+                            order.status
+                          )}`}
+                        >
+
+                          {getStatusIcon(
+                            order.status
+                          )}
+
+                          {order.status ||
+                            "Order Placed"}
+
+                        </span>
+
+                      </td>
+
+                    </tr>
+
+                  )
+                )
+
+              ) : (
+
+                <tr>
+
+                  <td
+                    colSpan="5"
+                    className="px-5 py-12 text-center"
                   >
 
-                    <td className="px-5 py-4 text-sm font-bold text-indigo-600">
+                    <Package
+                      size={38}
+                      className="mx-auto text-slate-300"
+                    />
 
-                      {
-                        order.id
-                      }
+                    <p className="mt-3 text-sm font-semibold text-slate-500">
+                      No recent transactions
+                    </p>
 
-                    </td>
+                  </td>
 
+                </tr>
 
-                    <td className="px-5 py-4 text-sm font-medium text-slate-700">
-
-                      {
-                        order.customer
-                      }
-
-                    </td>
-
-
-                    <td className="px-5 py-4 text-sm text-slate-500">
-
-                      {
-                        order.date
-                      }
-
-                    </td>
-
-
-                    <td className="px-5 py-4">
-
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${getStatusStyle(
-                          order.status
-                        )}`}
-                      >
-
-                        {
-                          getStatusIcon(
-                            order.status
-                          )
-                        }
-
-                        {
-                          order.status
-                        }
-
-                      </span>
-
-                    </td>
-
-
-                    <td className="px-5 py-4 text-right text-sm font-bold text-slate-900">
-
-                      {
-                        formatCurrency(
-                          order.amount
-                        )
-                      }
-
-                    </td>
-
-
-                    <td className="px-5 py-4 text-right">
-
-                      <button className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
-
-                        <MoreHorizontal
-                          size={18}
-                        />
-
-                      </button>
-
-                    </td>
-
-                  </tr>
-
-                )
               )}
 
             </tbody>
@@ -1954,57 +1566,34 @@ const Analytics = () => {
 
       </div>
 
+      {/* =================================================
+          DATABASE CONNECTION FOOTER
+      ================================================= */}
 
-      {/* ==================================================
-          FOOTER SUMMARY
-      ================================================== */}
+      <div className="mt-6 flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
-      <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
-
-        <div className="flex items-center gap-3">
-
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-
-            <Activity
-              size={19}
-            />
-
-          </div>
-
-
-          <div>
-
-            <p className="text-sm font-bold text-slate-900">
-              Your store is performing well
-            </p>
-
-            <p className="mt-1 text-xs text-slate-500">
-              Revenue and order volume are trending upward.
-            </p>
-
-          </div>
-
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+          <Activity size={20} />
         </div>
 
+        <div>
 
-        <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+          <p className="text-sm font-bold text-slate-900">
+            Analytics connected to your database
+          </p>
 
-          <TrendingUp
-            size={17}
-          />
-
-          18.6% overall growth
+          <p className="mt-1 text-xs text-slate-500">
+            Revenue is calculated from Delivered
+            orders and order statistics are based
+            on your MongoDB data.
+          </p>
 
         </div>
 
       </div>
 
     </div>
-
   );
-
 };
 
-
 export default Analytics;
-

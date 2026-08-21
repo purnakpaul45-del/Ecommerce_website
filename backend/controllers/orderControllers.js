@@ -102,6 +102,7 @@ const validateItems = (items) => {
     if (
       item.price === undefined ||
       item.price === null ||
+      !Number.isFinite(Number(item.price)) ||
       Number(item.price) <= 0
     ) {
       return `Invalid price for product: ${
@@ -111,6 +112,7 @@ const validateItems = (items) => {
 
     if (
       item.quantity === undefined ||
+      !Number.isFinite(Number(item.quantity)) ||
       Number(item.quantity) <= 0
     ) {
       return `Invalid quantity for product: ${
@@ -126,6 +128,55 @@ const validateItems = (items) => {
   }
 
   return null;
+};
+
+// ======================================================
+// PREPARE ORDER ITEMS
+// ======================================================
+//
+// This is the IMPORTANT CATEGORY PART.
+//
+// Category is copied from the cart item and stored
+// permanently inside the order.
+//
+// Supports:
+// item.category
+// item.categoryName
+//
+// If neither exists, "Other" is used.
+// ======================================================
+
+const prepareItems = (items) => {
+  return items.map((item) => {
+    const category =
+      item.category ||
+      item.categoryName ||
+      "Other";
+
+    return {
+      _id: item._id || item.id,
+
+      name: item.name,
+
+      image: Array.isArray(item.image)
+        ? item.image
+        : item.image
+          ? [item.image]
+          : [],
+
+      price: Number(item.price),
+
+      quantity: Number(item.quantity),
+
+      size: item.size,
+
+      // ================================================
+      // CATEGORY
+      // ================================================
+
+      category: String(category).trim() || "Other",
+    };
+  });
 };
 
 // ======================================================
@@ -158,7 +209,7 @@ const placeOrder = async (req, res) => {
     }
 
     // --------------------------------------------------
-    // ITEMS
+    // VALIDATE ITEMS
     // --------------------------------------------------
 
     const itemsError = validateItems(items);
@@ -169,6 +220,12 @@ const placeOrder = async (req, res) => {
         message: itemsError,
       });
     }
+
+    // --------------------------------------------------
+    // PREPARE ITEMS
+    // --------------------------------------------------
+
+    const orderItems = prepareItems(items);
 
     // --------------------------------------------------
     // AMOUNT
@@ -201,13 +258,13 @@ const placeOrder = async (req, res) => {
     }
 
     // --------------------------------------------------
-    // CREATE ORDER
+    // CREATE COD ORDER
     // --------------------------------------------------
 
     const orderData = {
       userId,
 
-      items,
+      items: orderItems,
 
       amount: numericAmount,
 
@@ -245,6 +302,13 @@ const placeOrder = async (req, res) => {
       savedOrder._id
     );
 
+    console.log(
+      "Categories:",
+      savedOrder.items.map(
+        (item) => item.category
+      )
+    );
+
     // --------------------------------------------------
     // CLEAR USER CART
     // --------------------------------------------------
@@ -256,13 +320,7 @@ const placeOrder = async (req, res) => {
       }
     );
 
-    console.log(
-      "COD cart cleared."
-    );
-
-    // --------------------------------------------------
-    // RESPONSE
-    // --------------------------------------------------
+    console.log("COD cart cleared.");
 
     return res.status(201).json({
       success: true,
@@ -307,7 +365,7 @@ const placeOrderStripe = async (
     );
 
     // --------------------------------------------------
-    // CHECK STRIPE
+    // STRIPE CONFIG
     // --------------------------------------------------
 
     if (!stripe) {
@@ -331,7 +389,7 @@ const placeOrderStripe = async (
     }
 
     // --------------------------------------------------
-    // ITEMS
+    // VALIDATE ITEMS
     // --------------------------------------------------
 
     const itemsError =
@@ -345,6 +403,13 @@ const placeOrderStripe = async (
     }
 
     // --------------------------------------------------
+    // PREPARE ITEMS WITH CATEGORY
+    // --------------------------------------------------
+
+    const orderItems =
+      prepareItems(items);
+
+    // --------------------------------------------------
     // AMOUNT
     // --------------------------------------------------
 
@@ -352,9 +417,7 @@ const placeOrderStripe = async (
       Number(amount);
 
     if (
-      !Number.isFinite(
-        numericAmount
-      ) ||
+      !Number.isFinite(numericAmount) ||
       numericAmount <= 0
     ) {
       return res.status(400).json({
@@ -379,43 +442,26 @@ const placeOrderStripe = async (
     }
 
     // --------------------------------------------------
-    // CREATE MONGODB ORDER
+    // CREATE DATABASE ORDER
     // --------------------------------------------------
 
     const orderData = {
       userId,
 
-      items,
+      items: orderItems,
 
       amount: numericAmount,
 
       address: {
-        firstName:
-          address.firstName,
-
-        lastName:
-          address.lastName,
-
-        email:
-          address.email,
-
-        street:
-          address.street,
-
-        city:
-          address.city,
-
-        state:
-          address.state,
-
-        pincode:
-          address.pincode,
-
-        country:
-          address.country,
-
-        phone:
-          address.phone,
+        firstName: address.firstName,
+        lastName: address.lastName,
+        email: address.email,
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+        country: address.country,
+        phone: address.phone,
       },
 
       paymentMethod: "Stripe",
@@ -440,14 +486,13 @@ const placeOrderStripe = async (
     // --------------------------------------------------
 
     const lineItems =
-      items.map((item) => ({
+      orderItems.map((item) => ({
         price_data: {
           currency: "inr",
 
           product_data: {
             name:
-              item.name ||
-              "Product",
+              item.name || "Product",
           },
 
           unit_amount:
@@ -480,8 +525,7 @@ const placeOrderStripe = async (
 
         mode: "payment",
 
-        line_items:
-          lineItems,
+        line_items: lineItems,
 
         customer_email:
           address.email,
@@ -502,7 +546,7 @@ const placeOrderStripe = async (
       });
 
     // --------------------------------------------------
-    // SAVE STRIPE SESSION
+    // SAVE STRIPE SESSION ID
     // --------------------------------------------------
 
     await orderModel.findByIdAndUpdate(
@@ -564,12 +608,19 @@ const stripeWebhook = async (
       );
     }
 
+    if (
+      !process.env.STRIPE_WEBHOOK_SECRET
+    ) {
+      return res.status(500).send(
+        "Stripe webhook secret is missing."
+      );
+    }
+
     event =
       stripe.webhooks.constructEvent(
         req.body,
         signature,
-        process.env
-          .STRIPE_WEBHOOK_SECRET
+        process.env.STRIPE_WEBHOOK_SECRET
       );
 
   } catch (error) {
@@ -610,15 +661,13 @@ const stripeWebhook = async (
           {
             payment: true,
 
-            paymentStatus:
-              "Paid",
+            paymentStatus: "Paid",
 
             stripeSessionId:
               session.id,
 
             stripePaymentIntentId:
-              session.payment_intent ||
-              "",
+              session.payment_intent || "",
           },
           {
             new: true,
@@ -659,8 +708,7 @@ const stripeWebhook = async (
           orderId,
           {
             payment: false,
-            paymentStatus:
-              "Failed",
+            paymentStatus: "Failed",
           }
         );
       }
@@ -678,8 +726,7 @@ const stripeWebhook = async (
 
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -705,40 +752,18 @@ const placeOrderRazorpay = async (
       "========== RAZORPAY ORDER =========="
     );
 
-    console.log(
-      "User ID:",
-      userId
-    );
-
-    console.log(
-      "Amount:",
-      amount
-    );
+    console.log("User ID:", userId);
+    console.log("Amount:", amount);
 
     // --------------------------------------------------
-    // CHECK RAZORPAY CONFIG
+    // RAZORPAY CONFIG
     // --------------------------------------------------
 
     if (!razorpay) {
-      console.error(
-        "Razorpay is not configured."
-      );
-
       return res.status(500).json({
         success: false,
         message:
           "Razorpay is not configured on the server.",
-      });
-    }
-
-    if (
-      !razorpayKeyId ||
-      !razorpayKeySecret
-    ) {
-      return res.status(500).json({
-        success: false,
-        message:
-          "Razorpay credentials are missing.",
       });
     }
 
@@ -755,7 +780,7 @@ const placeOrderRazorpay = async (
     }
 
     // --------------------------------------------------
-    // ITEMS
+    // VALIDATE ITEMS
     // --------------------------------------------------
 
     const itemsError =
@@ -769,6 +794,13 @@ const placeOrderRazorpay = async (
     }
 
     // --------------------------------------------------
+    // PREPARE ITEMS WITH CATEGORY
+    // --------------------------------------------------
+
+    const orderItems =
+      prepareItems(items);
+
+    // --------------------------------------------------
     // AMOUNT
     // --------------------------------------------------
 
@@ -776,9 +808,7 @@ const placeOrderRazorpay = async (
       Number(amount);
 
     if (
-      !Number.isFinite(
-        numericAmount
-      ) ||
+      !Number.isFinite(numericAmount) ||
       numericAmount <= 0
     ) {
       return res.status(400).json({
@@ -803,7 +833,7 @@ const placeOrderRazorpay = async (
     }
 
     // --------------------------------------------------
-    // CONVERT INR TO PAISE
+    // RAZORPAY AMOUNT
     // --------------------------------------------------
 
     const razorpayAmount =
@@ -812,56 +842,35 @@ const placeOrderRazorpay = async (
       );
 
     // --------------------------------------------------
-    // CREATE MONGODB ORDER
+    // CREATE DATABASE ORDER
     // --------------------------------------------------
 
     const orderData = {
       userId,
 
-      items,
+      items: orderItems,
 
-      amount:
-        numericAmount,
+      amount: numericAmount,
 
       address: {
-        firstName:
-          address.firstName,
-
-        lastName:
-          address.lastName,
-
-        email:
-          address.email,
-
-        street:
-          address.street,
-
-        city:
-          address.city,
-
-        state:
-          address.state,
-
-        pincode:
-          address.pincode,
-
-        country:
-          address.country,
-
-        phone:
-          address.phone,
+        firstName: address.firstName,
+        lastName: address.lastName,
+        email: address.email,
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+        country: address.country,
+        phone: address.phone,
       },
 
-      paymentMethod:
-        "Razorpay",
+      paymentMethod: "Razorpay",
 
       payment: false,
 
-      paymentStatus:
-        "Pending",
+      paymentStatus: "Pending",
 
-      status:
-        "Order Placed",
+      status: "Order Placed",
 
       date: Date.now(),
     };
@@ -872,22 +881,15 @@ const placeOrderRazorpay = async (
     const savedOrder =
       await newOrder.save();
 
-    console.log(
-      "MongoDB Order Saved:",
-      savedOrder._id
-    );
-
     // --------------------------------------------------
     // CREATE RAZORPAY ORDER
     // --------------------------------------------------
 
     const razorpayOrder =
       await razorpay.orders.create({
-        amount:
-          razorpayAmount,
+        amount: razorpayAmount,
 
-        currency:
-          "INR",
+        currency: "INR",
 
         receipt:
           savedOrder._id.toString(),
@@ -918,18 +920,13 @@ const placeOrderRazorpay = async (
       }
     );
 
-    // --------------------------------------------------
-    // RESPONSE TO FRONTEND
-    // --------------------------------------------------
-
     return res.status(200).json({
       success: true,
 
       message:
         "Razorpay order created successfully.",
 
-      key:
-        razorpayKeyId,
+      key: razorpayKeyId,
 
       razorpayOrderId:
         razorpayOrder.id,
@@ -983,8 +980,7 @@ const verifyRazorpayPayment = async (
       razorpay_signature,
     } = req.body;
 
-    const userId =
-      req.userId;
+    const userId = req.userId;
 
     console.log(
       "========== VERIFY RAZORPAY PAYMENT =========="
@@ -1006,9 +1002,7 @@ const verifyRazorpayPayment = async (
     // RAZORPAY CONFIG
     // --------------------------------------------------
 
-    if (
-      !razorpayKeySecret
-    ) {
+    if (!razorpayKeySecret) {
       return res.status(500).json({
         success: false,
         message:
@@ -1053,20 +1047,22 @@ const verifyRazorpayPayment = async (
     }
 
     // --------------------------------------------------
-    // PREVENT DUPLICATE VERIFICATION
+    // DUPLICATE VERIFICATION
     // --------------------------------------------------
 
     if (order.payment === true) {
       return res.status(200).json({
         success: true,
+
         message:
           "Payment already verified.",
+
         order,
       });
     }
 
     // --------------------------------------------------
-    // GENERATE EXPECTED SIGNATURE
+    // GENERATE SIGNATURE
     // --------------------------------------------------
 
     const body =
@@ -1082,7 +1078,7 @@ const verifyRazorpayPayment = async (
         .digest("hex");
 
     // --------------------------------------------------
-    // COMPARE SIGNATURE
+    // SAFE SIGNATURE COMPARISON
     // --------------------------------------------------
 
     const expectedBuffer =
@@ -1105,8 +1101,7 @@ const verifyRazorpayPayment = async (
         order._id,
         {
           payment: false,
-          paymentStatus:
-            "Failed",
+          paymentStatus: "Failed",
         }
       );
 
@@ -1128,8 +1123,7 @@ const verifyRazorpayPayment = async (
         order._id,
         {
           payment: false,
-          paymentStatus:
-            "Failed",
+          paymentStatus: "Failed",
         }
       );
 
@@ -1139,10 +1133,6 @@ const verifyRazorpayPayment = async (
           "Payment verification failed.",
       });
     }
-
-    console.log(
-      "Razorpay signature verified successfully."
-    );
 
     // --------------------------------------------------
     // UPDATE PAYMENT
@@ -1154,8 +1144,7 @@ const verifyRazorpayPayment = async (
         {
           payment: true,
 
-          paymentStatus:
-            "Paid",
+          paymentStatus: "Paid",
 
           razorpayPaymentId:
             razorpay_payment_id,
@@ -1181,16 +1170,8 @@ const verifyRazorpayPayment = async (
     );
 
     console.log(
-      "Razorpay payment successful."
+      "Razorpay payment verified successfully."
     );
-
-    console.log(
-      "Cart cleared."
-    );
-
-    // --------------------------------------------------
-    // RESPONSE
-    // --------------------------------------------------
 
     return res.status(200).json({
       success: true,
@@ -1198,8 +1179,7 @@ const verifyRazorpayPayment = async (
       message:
         "Razorpay payment verified successfully.",
 
-      order:
-        updatedOrder,
+      order: updatedOrder,
     });
 
   } catch (error) {
@@ -1210,6 +1190,7 @@ const verifyRazorpayPayment = async (
 
     return res.status(500).json({
       success: false,
+
       message:
         error.message ||
         "Payment verification failed.",
@@ -1226,12 +1207,27 @@ const allorders = async (
   res
 ) => {
   try {
+    console.log(
+      "========== GET ALL ORDERS =========="
+    );
+
+    console.log(
+      "Admin ID:",
+      req.adminId
+    );
+
     const orders =
       await orderModel
         .find({})
         .sort({
           createdAt: -1,
-        });
+        })
+        .lean();
+
+    console.log(
+      "Orders found:",
+      orders.length
+    );
 
     return res.status(200).json({
       success: true,
@@ -1262,11 +1258,14 @@ const userOrders = async (
   res
 ) => {
   try {
-    const userId =
-      req.userId;
+    const userId = req.userId;
 
     console.log(
-      "Getting orders for user:",
+      "========== GET USER ORDERS =========="
+    );
+
+    console.log(
+      "User ID:",
       userId
     );
 
@@ -1285,7 +1284,8 @@ const userOrders = async (
         })
         .sort({
           createdAt: -1,
-        });
+        })
+        .lean();
 
     return res.status(200).json({
       success: true,
@@ -1316,20 +1316,46 @@ const updateStatus = async (
   res
 ) => {
   try {
+    console.log(
+      "========== UPDATE ORDER STATUS =========="
+    );
+
+    console.log(
+      "Request body:",
+      req.body
+    );
+
+    console.log(
+      "Admin ID:",
+      req.adminId
+    );
+
     const {
       orderId,
       status,
     } = req.body;
 
     // --------------------------------------------------
-    // VALIDATION
+    // VALIDATE ORDER ID
     // --------------------------------------------------
 
-    if (!orderId || !status) {
+    if (!orderId) {
       return res.status(400).json({
         success: false,
         message:
-          "Order ID and status are required.",
+          "Order ID is required.",
+      });
+    }
+
+    // --------------------------------------------------
+    // VALIDATE STATUS
+    // --------------------------------------------------
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Order status is required.",
       });
     }
 
@@ -1348,34 +1374,26 @@ const updateStatus = async (
     ];
 
     if (
-      !allowedStatuses.includes(
-        status
-      )
+      !allowedStatuses.includes(status)
     ) {
       return res.status(400).json({
         success: false,
+
         message:
-          "Invalid order status.",
+          `Invalid order status: ${status}`,
+
+        allowedStatuses,
       });
     }
 
     // --------------------------------------------------
-    // UPDATE ORDER
+    // FIND ORDER
     // --------------------------------------------------
 
-    const updatedOrder =
-      await orderModel.findByIdAndUpdate(
-        orderId,
-        {
-          status,
-        },
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
+    const existingOrder =
+      await orderModel.findById(orderId);
 
-    if (!updatedOrder) {
+    if (!existingOrder) {
       return res.status(404).json({
         success: false,
         message:
@@ -1383,8 +1401,67 @@ const updateStatus = async (
       });
     }
 
+    const previousStatus =
+      existingOrder.status;
+
     console.log(
-      `Order ${orderId} status changed to ${status}`
+      "Previous status:",
+      previousStatus
+    );
+
+    console.log(
+      "New status:",
+      status
+    );
+
+    // --------------------------------------------------
+    // UPDATE STATUS
+    // --------------------------------------------------
+
+    existingOrder.status = status;
+
+    // --------------------------------------------------
+    // COD PAYMENT
+    // --------------------------------------------------
+
+    if (
+      existingOrder.paymentMethod === "COD" &&
+      status === "Delivered"
+    ) {
+      existingOrder.payment = true;
+
+      existingOrder.paymentStatus =
+        "Paid";
+
+      console.log(
+        "COD order marked as paid because it was delivered."
+      );
+    }
+
+    // --------------------------------------------------
+    // CANCELLED ORDER
+    // --------------------------------------------------
+
+    if (status === "Cancelled") {
+      if (
+        existingOrder.paymentMethod === "COD"
+      ) {
+        existingOrder.payment = false;
+
+        existingOrder.paymentStatus =
+          "Failed";
+      }
+    }
+
+    // --------------------------------------------------
+    // SAVE ORDER
+    // --------------------------------------------------
+
+    const updatedOrder =
+      await existingOrder.save();
+
+    console.log(
+      `Order ${orderId} status changed from "${previousStatus}" to "${status}"`
     );
 
     return res.status(200).json({
@@ -1393,8 +1470,7 @@ const updateStatus = async (
       message:
         "Order status updated successfully.",
 
-      order:
-        updatedOrder,
+      order: updatedOrder,
     });
 
   } catch (error) {
@@ -1405,6 +1481,7 @@ const updateStatus = async (
 
     return res.status(500).json({
       success: false,
+
       message:
         error.message ||
         "Unable to update order status.",

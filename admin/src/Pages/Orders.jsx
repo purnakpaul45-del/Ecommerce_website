@@ -2,732 +2,696 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 import {
-  Package,
   RefreshCw,
-  Search,
-  Truck,
-  CheckCircle,
-  Clock,
-  XCircle,
-  CreditCard,
+  Package,
+  IndianRupee,
   User,
-  MapPin,
-  Phone,
-  Mail,
+  CreditCard,
   ChevronDown,
-  AlertCircle,
 } from "lucide-react";
 
 const Orders = () => {
-  // =========================================================
-  // BACKEND
-  // =========================================================
+  // =====================================================
+  // BACKEND URL
+  // =====================================================
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL;
 
-  // =========================================================
-  // STATES
-  // =========================================================
+  // =====================================================
+  // STATE
+  // =====================================================
 
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState(null);
-  const [search, setSearch] = useState("");
-  const [error, setError] = useState("");
 
-  // =========================================================
-  // ORDER STATUSES
-  // =========================================================
+  const [loading, setLoading] =
+    useState(true);
 
-  const statuses = [
-    "Order Placed",
-    "Processing",
-    "Packed",
-    "Shipped",
-    "Out for Delivery",
-    "Delivered",
-    "Cancelled",
-  ];
+  const [error, setError] =
+    useState("");
 
-  // =========================================================
-  // GET ADMIN TOKEN
-  // =========================================================
+  const [updatingOrder, setUpdatingOrder] =
+    useState(null);
 
-  const getToken = () => {
-    return localStorage.getItem("token");
-  };
-
-  // =========================================================
-  // AUTH CONFIG
-  // =========================================================
-
-  const getAuthConfig = () => {
-    const token = getToken();
-
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    };
-  };
-
-  // =========================================================
-  // FETCH ALL ORDERS
-  // =========================================================
+  // =====================================================
+  // FETCH ORDERS
+  // =====================================================
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const token = getToken();
+      // -----------------------------------------------
+      // GET ADMIN TOKEN
+      // -----------------------------------------------
 
-      console.log("Admin token:", token);
+      const token =
+        localStorage.getItem(
+          "adminToken"
+        );
+
+      console.log(
+        "================================="
+      );
+
+      console.log(
+        "FETCHING ADMIN ORDERS"
+      );
+
+      console.log(
+        "Admin token:",
+        token
+      );
+
+      // -----------------------------------------------
+      // TOKEN CHECK
+      // -----------------------------------------------
 
       if (!token) {
-        setError("Admin login required. Please login again.");
-        setOrders([]);
+        setError(
+          "Admin session expired. Please login again."
+        );
+
+        setLoading(false);
+
         return;
       }
 
-      /*
-        IMPORTANT:
+      // -----------------------------------------------
+      // IMPORTANT:
+      // Backend uses POST /api/order/list
+      // -----------------------------------------------
 
-        Your backend route is:
+      const response =
+        await axios.post(
+          `${backendUrl}/api/order/list`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-        orderRouter.post("/list", adminAuth, allorders)
-
-        Therefore we MUST use axios.post()
-      */
-
-      const response = await axios.post(
-        `${backendUrl}/api/order/list`,
-        {},
-        getAuthConfig()
+      console.log(
+        "Orders Response:",
+        response.data
       );
 
-      console.log("ADMIN ORDERS RESPONSE:", response.data);
+      // -----------------------------------------------
+      // HANDLE RESPONSE
+      // -----------------------------------------------
 
       if (response.data.success) {
-        setOrders(response.data.orders || []);
+        setOrders(
+          response.data.orders || []
+        );
       } else {
-        setOrders([]);
-
         setError(
-          response.data.message || "Unable to load orders."
+          response.data.message ||
+            "Unable to load orders."
         );
       }
     } catch (err) {
-      console.error("FETCH ORDERS ERROR:", err);
+      console.error(
+        "FETCH ORDERS ERROR:",
+        err
+      );
 
-      if (err.response) {
-        console.error("Status:", err.response.status);
-        console.error("Data:", err.response.data);
+      console.error(
+        "Status:",
+        err.response?.status
+      );
 
-        if (err.response.status === 401) {
-          setError(
-            "Admin authentication failed. Please login again."
-          );
+      console.error(
+        "Data:",
+        err.response?.data
+      );
 
-          /*
-            Do NOT automatically delete token while debugging.
-            Otherwise you cannot inspect the token.
-          */
-        } else if (err.response.status === 403) {
-          setError(
-            "Access denied. This account is not an admin."
-          );
-        } else {
-          setError(
-            err.response.data?.message ||
-              "Failed to load orders."
-          );
-        }
-      } else if (err.request) {
+      // -----------------------------------------------
+      // 401
+      // -----------------------------------------------
+
+      if (
+        err.response?.status === 401
+      ) {
         setError(
-          "Cannot connect to backend. Make sure your backend is running on port 8005."
+          "Your admin session has expired. Please login again."
         );
-      } else {
-        setError("Something went wrong while loading orders.");
+
+        localStorage.removeItem(
+          "adminToken"
+        );
+
+        return;
       }
+
+      // -----------------------------------------------
+      // 403
+      // -----------------------------------------------
+
+      if (
+        err.response?.status === 403
+      ) {
+        setError(
+          err.response?.data?.message ||
+            "Access denied. Admin authorization failed."
+        );
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // OTHER ERRORS
+      // -----------------------------------------------
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to connect to the server."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================================================
+  // =====================================================
   // UPDATE ORDER STATUS
-  // =========================================================
+  // =====================================================
 
-  const updateOrderStatus = async (orderId, newStatus) => {
+  const updateOrderStatus = async (
+    orderId,
+    status
+  ) => {
     try {
-      setUpdatingId(orderId);
-      setError("");
+      setUpdatingOrder(orderId);
 
-      const token = getToken();
+      const token =
+        localStorage.getItem(
+          "adminToken"
+        );
 
       if (!token) {
-        alert("Admin login required.");
+        setError(
+          "Admin session expired. Please login again."
+        );
+
         return;
       }
 
-      console.log("Updating order:", orderId);
-      console.log("New status:", newStatus);
+      const response =
+        await axios.post(
+          `${backendUrl}/api/order/status`,
+          {
+            orderId,
+            status,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      const response = await axios.post(
-        `${backendUrl}/api/order/status`,
-        {
-          orderId,
-          status: newStatus,
-        },
-        getAuthConfig()
+      console.log(
+        "Update Status Response:",
+        response.data
       );
 
-      console.log("UPDATE STATUS RESPONSE:", response.data);
-
       if (response.data.success) {
-        /*
-          Update local UI immediately.
-        */
-
-        setOrders((previousOrders) =>
-          previousOrders.map((order) =>
-            order._id === orderId
-              ? {
-                  ...order,
-                  status: newStatus,
-                }
-              : order
-          )
-        );
-
-        /*
-          Optional success message.
-        */
-
-        console.log(
-          `Order ${orderId} updated to ${newStatus}`
-        );
+        // Refresh orders
+        await fetchOrders();
       } else {
-        alert(
+        setError(
           response.data.message ||
-            "Unable to update order status."
+            "Unable to update order."
         );
       }
     } catch (err) {
-      console.error("UPDATE STATUS ERROR:", err);
+      console.error(
+        "UPDATE ORDER ERROR:",
+        err
+      );
 
-      if (err.response?.status === 401) {
-        alert(
-          "Admin authentication failed. Please login again."
+      console.error(
+        "Status:",
+        err.response?.status
+      );
+
+      console.error(
+        "Data:",
+        err.response?.data
+      );
+
+      if (
+        err.response?.status === 401
+      ) {
+        localStorage.removeItem(
+          "adminToken"
         );
-      } else if (err.response?.status === 403) {
-        alert("Access denied. Admin account required.");
-      } else {
-        alert(
-          err.response?.data?.message ||
-            "Failed to update order status."
+
+        setError(
+          "Your admin session has expired. Please login again."
         );
+
+        return;
       }
+
+      if (
+        err.response?.status === 403
+      ) {
+        setError(
+          "Access denied. Admin authorization failed."
+        );
+
+        return;
+      }
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to update order."
+      );
     } finally {
-      setUpdatingId(null);
+      setUpdatingOrder(null);
     }
   };
 
-  // =========================================================
-  // INITIAL LOAD
-  // =========================================================
+  // =====================================================
+  // LOAD ORDERS
+  // =====================================================
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  // =========================================================
-  // SEARCH
-  // =========================================================
-
-  const filteredOrders = orders.filter((order) => {
-    const searchValue = search.toLowerCase().trim();
-
-    if (!searchValue) {
-      return true;
-    }
-
-    const orderId =
-      order._id?.toLowerCase() || "";
-
-    const firstName =
-      order.address?.firstName?.toLowerCase() || "";
-
-    const lastName =
-      order.address?.lastName?.toLowerCase() || "";
-
-    const email =
-      order.address?.email?.toLowerCase() || "";
-
-    return (
-      orderId.includes(searchValue) ||
-      firstName.includes(searchValue) ||
-      lastName.includes(searchValue) ||
-      email.includes(searchValue)
-    );
-  });
-
-  // =========================================================
-  // STATUS ICON
-  // =========================================================
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "Delivered":
-        return <CheckCircle size={18} />;
-
-      case "Cancelled":
-        return <XCircle size={18} />;
-
-      case "Shipped":
-      case "Out for Delivery":
-        return <Truck size={18} />;
-
-      case "Processing":
-      case "Packed":
-        return <RefreshCw size={18} />;
-
-      default:
-        return <Clock size={18} />;
-    }
-  };
-
-  // =========================================================
+  // =====================================================
   // STATUS STYLE
-  // =========================================================
+  // =====================================================
 
-  const getStatusStyle = (status) => {
+  const getStatusStyle = (
+    status
+  ) => {
     switch (status) {
-      case "Delivered":
-        return "bg-emerald-100 text-emerald-700";
+      case "Order Placed":
+        return "bg-indigo-50 text-indigo-700";
 
-      case "Cancelled":
-        return "bg-red-100 text-red-700";
+      case "Packing":
+      case "Processing":
+        return "bg-amber-50 text-amber-700";
 
       case "Shipped":
-        return "bg-blue-100 text-blue-700";
+        return "bg-blue-50 text-blue-700";
 
       case "Out for Delivery":
-        return "bg-violet-100 text-violet-700";
+        return "bg-cyan-50 text-cyan-700";
 
-      case "Processing":
-        return "bg-amber-100 text-amber-700";
+      case "Delivered":
+        return "bg-emerald-50 text-emerald-700";
 
-      case "Packed":
-        return "bg-orange-100 text-orange-700";
+      case "Cancelled":
+      case "Canceled":
+        return "bg-red-50 text-red-700";
 
       default:
-        return "bg-indigo-100 text-indigo-700";
+        return "bg-slate-50 text-slate-600";
     }
   };
 
-  // =========================================================
-  // DATE FORMAT
-  // =========================================================
+  // =====================================================
+  // PAYMENT STYLE
+  // =====================================================
 
-  const formatDate = (date) => {
-    if (!date) {
-      return "N/A";
+  const getPaymentStyle = (
+    paymentStatus
+  ) => {
+    switch (paymentStatus) {
+      case "Paid":
+        return "bg-emerald-50 text-emerald-700";
+
+      case "Pending":
+        return "bg-amber-50 text-amber-700";
+
+      case "Failed":
+        return "bg-red-50 text-red-700";
+
+      default:
+        return "bg-slate-50 text-slate-600";
     }
+  };
 
-    return new Date(date).toLocaleDateString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }
+  // =====================================================
+  // LOADING
+  // =====================================================
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[500px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <RefreshCw
+            size={30}
+            className="animate-spin text-indigo-600"
+          />
+
+          <p className="text-sm text-slate-500">
+            Loading orders...
+          </p>
+        </div>
+      </div>
     );
-  };
+  }
 
-  // =========================================================
-  // PRODUCT IMAGE
-  // =========================================================
+  // =====================================================
+  // ERROR
+  // =====================================================
 
-  const getProductImage = (item) => {
-    if (Array.isArray(item?.image)) {
-      return item.image[0] || null;
-    }
+  if (error) {
+    return (
+      <div className="flex min-h-[500px] items-center justify-center">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+          <p className="font-semibold text-red-700">
+            {error}
+          </p>
 
-    if (typeof item?.image === "string") {
-      return item.image;
-    }
+          <button
+            type="button"
+            onClick={fetchOrders}
+            className="mt-4 flex mx-auto items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+          >
+            <RefreshCw size={15} />
 
-    return null;
-  };
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  // =========================================================
+  // =====================================================
   // UI
-  // =========================================================
+  // =====================================================
 
   return (
-    <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-
-      {/* =====================================================
+    <div className="w-full">
+      {/* =================================================
           HEADER
-      ===================================================== */}
+      ================================================= */}
 
-      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Orders
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
-            Manage customer orders and update delivery status.
+            Manage and track customer orders.
           </p>
         </div>
 
         <button
           type="button"
           onClick={fetchOrders}
-          disabled={loading}
-          className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-fit items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
         >
-          <RefreshCw
-            size={18}
-            className={loading ? "animate-spin" : ""}
-          />
+          <RefreshCw size={16} />
 
-          Refresh Orders
+          Refresh
         </button>
-
       </div>
 
-      {/* =====================================================
-          ERROR
-      ===================================================== */}
+      {/* =================================================
+          ORDER COUNT
+      ================================================= */}
 
-      {error && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <Package size={21} />
+            </div>
 
-          <AlertCircle
-            size={20}
-            className="mt-0.5 shrink-0 text-red-600"
-          />
+            <div>
+              <p className="text-sm text-slate-500">
+                Total Orders
+              </p>
 
-          <div>
-            <p className="font-semibold text-red-700">
-              Unable to load orders
-            </p>
-
-            <p className="mt-1 text-sm text-red-600">
-              {error}
-            </p>
-
-            <button
-              type="button"
-              onClick={fetchOrders}
-              className="mt-3 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700"
-            >
-              Try Again
-            </button>
+              <p className="text-2xl font-bold text-slate-900">
+                {orders.length}
+              </p>
+            </div>
           </div>
-
-        </div>
-      )}
-
-      {/* =====================================================
-          SEARCH
-      ===================================================== */}
-
-      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-
-        <div className="relative">
-
-          <Search
-            size={20}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-
-          <input
-            type="text"
-            placeholder="Search order ID, customer name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-          />
-
         </div>
 
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <IndianRupee size={21} />
+            </div>
+
+            <div>
+              <p className="text-sm text-slate-500">
+                Paid Orders
+              </p>
+
+              <p className="text-2xl font-bold text-slate-900">
+                {
+                  orders.filter(
+                    (order) =>
+                      order.payment ===
+                        true ||
+                      order.paymentStatus ===
+                        "Paid"
+                  ).length
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <User size={21} />
+            </div>
+
+            <div>
+              <p className="text-sm text-slate-500">
+                Customers
+              </p>
+
+              <p className="text-2xl font-bold text-slate-900">
+                {
+                  new Set(
+                    orders.map(
+                      (order) =>
+                        String(
+                          order.userId
+                        )
+                    )
+                  ).size
+                }
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* =====================================================
-          COUNT
-      ===================================================== */}
+      {/* =================================================
+          ORDERS TABLE
+      ================================================= */}
 
-      {!loading && !error && (
-        <div className="mb-5">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 p-5">
+          <h2 className="text-lg font-bold text-slate-900">
+            All Orders
+          </h2>
 
-          <p className="text-sm text-slate-500">
-            Showing{" "}
-            <span className="font-bold text-slate-800">
-              {filteredOrders.length}
-            </span>{" "}
-            {filteredOrders.length === 1
-              ? "order"
-              : "orders"}
+          <p className="mt-1 text-sm text-slate-500">
+            View and manage all customer orders.
           </p>
-
         </div>
-      )}
 
-      {/* =====================================================
-          LOADING
-      ===================================================== */}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1100px]">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Order
+                </th>
 
-      {loading && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Customer
+                </th>
 
-          <RefreshCw
-            size={35}
-            className="mx-auto animate-spin text-indigo-600"
-          />
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Items
+                </th>
 
-          <p className="mt-4 text-sm font-medium text-slate-500">
-            Loading orders...
-          </p>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Amount
+                </th>
 
-        </div>
-      )}
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Payment
+                </th>
 
-      {/* =====================================================
-          EMPTY
-      ===================================================== */}
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Status
+                </th>
 
-      {!loading &&
-        !error &&
-        filteredOrders.length === 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Update
+                </th>
+              </tr>
+            </thead>
 
-            <Package
-              size={50}
-              className="mx-auto text-slate-300"
-            />
+            <tbody>
+              {orders.length > 0 ? (
+                orders.map((order) => {
+                  const customerName =
+                    `${order.address?.firstName || ""} ${
+                      order.address?.lastName || ""
+                    }`.trim() ||
+                    "Customer";
 
-            <h2 className="mt-4 text-xl font-bold text-slate-800">
-              No Orders Found
-            </h2>
+                  const totalItems =
+                    order.items?.reduce(
+                      (total, item) =>
+                        total +
+                        Number(
+                          item.quantity || 0
+                        ),
+                      0
+                    ) || 0;
 
-            <p className="mt-2 text-sm text-slate-500">
-              {search
-                ? "Try another search."
-                : "There are currently no customer orders."}
-            </p>
-
-          </div>
-        )}
-
-      {/* =====================================================
-          ORDER LIST
-      ===================================================== */}
-
-      {!loading &&
-        !error &&
-        filteredOrders.length > 0 && (
-          <div className="space-y-6">
-
-            {filteredOrders.map((order) => {
-
-              const currentStatus =
-                order.status || "Order Placed";
-
-              return (
-                <div
-                  key={order._id}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
-                >
-
-                  {/* =================================================
-                      ORDER HEADER
-                  ================================================= */}
-
-                  <div className="flex flex-col gap-5 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
-
-                    {/* ORDER ID */}
-
-                    <div>
-
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                        Order ID
-                      </p>
-
-                      <p className="mt-1 break-all font-bold text-slate-900">
-                        #{order._id}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-400">
-                        {formatDate(order.createdAt)}
-                      </p>
-
-                    </div>
-
-                    {/* CUSTOMER */}
-
-                    <div className="flex items-center gap-3">
-
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                        <User size={20} />
-                      </div>
-
-                      <div>
-
-                        <p className="font-semibold text-slate-800">
-                          {order.address?.firstName ||
-                            "Customer"}{" "}
-                          {order.address?.lastName || ""}
-                        </p>
-
-                        <p className="text-sm text-slate-500">
-                          {order.address?.email ||
-                            "No email"}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                    {/* STATUS */}
-
-                    <div
-                      className={`flex w-fit items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold ${getStatusStyle(
-                        currentStatus
-                      )}`}
+                  return (
+                    <tr
+                      key={order._id}
+                      className="border-b border-slate-100 transition hover:bg-slate-50"
                     >
-                      {getStatusIcon(currentStatus)}
+                      {/* ORDER ID */}
 
-                      {currentStatus}
-                    </div>
+                      <td className="px-5 py-4">
+                        <span className="text-sm font-semibold text-indigo-600">
+                          #
+                          {String(
+                            order._id
+                          ).slice(-8)}
+                        </span>
 
-                  </div>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {order.createdAt
+                            ? new Date(
+                                order.createdAt
+                              ).toLocaleDateString(
+                                "en-IN"
+                              )
+                            : ""}
+                        </p>
+                      </td>
 
-                  {/* =================================================
-                      BODY
-                  ================================================= */}
+                      {/* CUSTOMER */}
 
-                  <div className="grid gap-6 p-5 xl:grid-cols-[1fr_340px]">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                            <User size={16} />
+                          </div>
 
-                    {/* PRODUCTS */}
+                          <div>
+                            <p className="text-sm font-semibold text-slate-700">
+                              {
+                                customerName
+                              }
+                            </p>
 
-                    <div>
-
-                      <h3 className="mb-4 font-bold text-slate-800">
-                        Ordered Products
-                      </h3>
-
-                      <div className="space-y-4">
-
-                        {order.items?.map(
-                          (item, index) => {
-
-                            const image =
-                              getProductImage(item);
-
-                            return (
-                              <div
-                                key={`${item._id || "item"}-${index}`}
-                                className="flex gap-4 rounded-xl bg-slate-50 p-4"
-                              >
-
-                                {/* IMAGE */}
-
-                                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
-
-                                  {image ? (
-                                    <img
-                                      src={image}
-                                      alt={
-                                        item.name ||
-                                        "Product"
-                                      }
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <Package
-                                      size={30}
-                                      className="text-slate-300"
-                                    />
-                                  )}
-
-                                </div>
-
-                                {/* DETAILS */}
-
-                                <div className="min-w-0">
-
-                                  <p className="font-semibold text-slate-800">
-                                    {item.name ||
-                                      "Product"}
-                                  </p>
-
-                                  <div className="mt-2 space-y-1 text-sm text-slate-500">
-
-                                    <p>
-                                      Price: ₹
-                                      {item.price || 0}
-                                    </p>
-
-                                    <p>
-                                      Quantity:{" "}
-                                      {item.quantity ||
-                                        1}
-                                    </p>
-
-                                    <p>
-                                      Size:{" "}
-                                      {item.size ||
-                                        "N/A"}
-                                    </p>
-
-                                  </div>
-
-                                </div>
-
-                              </div>
-                            );
-                          }
-                        )}
-
-                      </div>
-
-                    </div>
-
-                    {/* RIGHT SIDE */}
-
-                    <div className="space-y-5">
-
-                      {/* =================================================
-                          STATUS UPDATE
-                      ================================================= */}
-
-                      <div className="rounded-2xl border border-slate-200 p-5">
-
-                        <div className="mb-4">
-
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Order Tracking
-                          </p>
-
-                          <h3 className="mt-1 text-lg font-bold text-slate-900">
-                            Update Status
-                          </h3>
-
+                            <p className="text-xs text-slate-400">
+                              {order.address
+                                ?.email ||
+                                ""}
+                            </p>
+                          </div>
                         </div>
+                      </td>
 
+                      {/* ITEMS */}
+
+                      <td className="px-5 py-4">
+                        <span className="text-sm text-slate-600">
+                          {totalItems}{" "}
+                          {totalItems ===
+                          1
+                            ? "Item"
+                            : "Items"}
+                        </span>
+                      </td>
+
+                      {/* AMOUNT */}
+
+                      <td className="px-5 py-4">
+                        <span className="text-sm font-bold text-slate-800">
+                          ₹
+                          {Number(
+                            order.amount ||
+                              0
+                          ).toLocaleString(
+                            "en-IN"
+                          )}
+                        </span>
+                      </td>
+
+                      {/* PAYMENT */}
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <CreditCard
+                            size={16}
+                            className="text-slate-400"
+                          />
+
+                          <div>
+                            <p className="text-xs font-semibold text-slate-700">
+                              {order.paymentMethod ||
+                                "COD"}
+                            </p>
+
+                            <span
+                              className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${getPaymentStyle(
+                                order.paymentStatus
+                              )}`}
+                            >
+                              {order.paymentStatus ||
+                                (order.payment
+                                  ? "Paid"
+                                  : "Pending")}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* STATUS */}
+
+                      <td className="px-5 py-4">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
+                            order.status
+                          )}`}
+                        >
+                          {order.status ||
+                            "Order Placed"}
+                        </span>
+                      </td>
+
+                      {/* UPDATE */}
+
+                      <td className="px-5 py-4">
                         <div className="relative">
-
                           <select
-                            value={currentStatus}
+                            value={
+                              order.status ||
+                              "Order Placed"
+                            }
                             disabled={
-                              updatingId ===
+                              updatingOrder ===
                               order._id
                             }
                             onChange={(e) =>
@@ -736,153 +700,68 @@ const Orders = () => {
                                 e.target.value
                               )
                             }
-                            className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-100"
+                            className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
+                            <option value="Order Placed">
+                              Order Placed
+                            </option>
 
-                            {statuses.map(
-                              (status) => (
-                                <option
-                                  key={status}
-                                  value={status}
-                                >
-                                  {status}
-                                </option>
-                              )
-                            )}
+                            <option value="Packing">
+                              Packing
+                            </option>
 
+                            <option value="Shipped">
+                              Shipped
+                            </option>
+
+                            <option value="Out for Delivery">
+                              Out for Delivery
+                            </option>
+
+                            <option value="Delivered">
+                              Delivered
+                            </option>
+
+                            <option value="Cancelled">
+                              Cancelled
+                            </option>
                           </select>
 
                           <ChevronDown
-                            size={18}
-                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            size={14}
+                            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400"
                           />
-
                         </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="px-5 py-16 text-center"
+                  >
+                    <Package
+                      size={40}
+                      className="mx-auto text-slate-300"
+                    />
 
-                        {updatingId ===
-                          order._id && (
-                          <div className="mt-3 flex items-center gap-2 text-sm font-medium text-indigo-600">
+                    <p className="mt-3 text-sm font-semibold text-slate-500">
+                      No orders found
+                    </p>
 
-                            <RefreshCw
-                              size={15}
-                              className="animate-spin"
-                            />
-
-                            Saving status...
-
-                          </div>
-                        )}
-
-                      </div>
-
-                      {/* =================================================
-                          ADDRESS
-                      ================================================= */}
-
-                      <div className="rounded-2xl border border-slate-200 p-5">
-
-                        <h3 className="mb-4 font-bold text-slate-800">
-                          Delivery Address
-                        </h3>
-
-                        <div className="space-y-3 text-sm text-slate-600">
-
-                          <p className="flex gap-2">
-
-                            <MapPin
-                              size={17}
-                              className="mt-0.5 shrink-0 text-slate-400"
-                            />
-
-                            <span>
-                              {order.address?.street ||
-                                "N/A"}
-                              {order.address?.city
-                                ? `, ${order.address.city}`
-                                : ""}
-                            </span>
-
-                          </p>
-
-                          <p className="flex gap-2">
-
-                            <Phone
-                              size={17}
-                              className="shrink-0 text-slate-400"
-                            />
-
-                            <span>
-                              {order.address?.phone ||
-                                "N/A"}
-                            </span>
-
-                          </p>
-
-                          <p className="flex gap-2 break-all">
-
-                            <Mail
-                              size={17}
-                              className="shrink-0 text-slate-400"
-                            />
-
-                            <span>
-                              {order.address?.email ||
-                                "N/A"}
-                            </span>
-
-                          </p>
-
-                        </div>
-
-                      </div>
-
-                      {/* =================================================
-                          PAYMENT
-                      ================================================= */}
-
-                      <div className="rounded-2xl border border-slate-200 p-5">
-
-                        <h3 className="mb-4 font-bold text-slate-800">
-                          Payment
-                        </h3>
-
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-
-                          <CreditCard
-                            size={17}
-                            className="text-slate-400"
-                          />
-
-                          {order.paymentMethod ||
-                            "COD"}
-
-                        </div>
-
-                        <div className="mt-4 border-t border-slate-100 pt-4">
-
-                          <p className="text-xs text-slate-400">
-                            Total Amount
-                          </p>
-
-                          <p className="mt-1 text-2xl font-bold text-slate-900">
-                            ₹{order.amount || 0}
-                          </p>
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                </div>
-              );
-            })}
-
-          </div>
-        )}
-
+                    <p className="mt-1 text-xs text-slate-400">
+                      Customer orders will appear
+                      here.
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

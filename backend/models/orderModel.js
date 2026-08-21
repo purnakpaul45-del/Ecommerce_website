@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
@@ -18,35 +17,50 @@ const orderSchema = new mongoose.Schema(
 
     items: [
       {
+        // Product ID
         _id: {
           type: String,
           required: true,
         },
 
+        // Product Name
         name: {
           type: String,
           required: true,
         },
 
+        // Product Images
         image: {
           type: Array,
           required: true,
         },
 
+        // Product Price
         price: {
           type: Number,
           required: true,
         },
 
+        // Quantity
         quantity: {
           type: Number,
           required: true,
           min: 1,
         },
 
+        // Selected Size
         size: {
           type: String,
           required: true,
+        },
+
+        // ==================================================
+        // PRODUCT CATEGORY
+        // ==================================================
+
+        category: {
+          type: String,
+          default: "Other",
         },
       },
     ],
@@ -129,7 +143,7 @@ const orderSchema = new mongoose.Schema(
     },
 
     // ======================================================
-    // PAYMENT STATUS
+    // PAYMENT
     // ======================================================
 
     payment: {
@@ -138,7 +152,7 @@ const orderSchema = new mongoose.Schema(
     },
 
     // ======================================================
-    // PAYMENT STATUS TEXT
+    // PAYMENT STATUS
     // ======================================================
 
     paymentStatus: {
@@ -231,4 +245,3 @@ const orderModel =
   mongoose.model("order", orderSchema);
 
 export default orderModel;
-

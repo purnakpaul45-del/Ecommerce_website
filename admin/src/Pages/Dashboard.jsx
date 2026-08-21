@@ -6,16 +6,14 @@ import {
   ShoppingCart,
   Users,
   IndianRupee,
-  Package,
   ArrowUpRight,
-  ArrowDownRight,
-  MoreHorizontal,
   RefreshCw,
+  Package,
 } from "lucide-react";
 
 const Dashboard = () => {
   // =====================================================
-  // BACKEND
+  // BACKEND URL
   // =====================================================
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -24,7 +22,8 @@ const Dashboard = () => {
   // STATE
   // =====================================================
 
-  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardData, setDashboardData] =
+    useState(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +38,8 @@ const Dashboard = () => {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("adminToken");
+      const token =
+        localStorage.getItem("adminToken");
 
       const response = await axios.get(
         `${backendUrl}/api/dashboard`,
@@ -58,7 +58,9 @@ const Dashboard = () => {
       );
 
       if (response.data.success) {
-        setDashboardData(response.data.data);
+        setDashboardData(
+          response.data.data
+        );
       } else {
         setError(
           response.data.message ||
@@ -98,31 +100,28 @@ const Dashboard = () => {
   // =====================================================
 
   const getStatusStyle = (status) => {
-    if (status === "Delivered") {
-      return "bg-emerald-50 text-emerald-700";
-    }
+    switch (status) {
+      case "Delivered":
+        return "bg-emerald-50 text-emerald-700";
 
-    if (status === "Processing") {
-      return "bg-amber-50 text-amber-700";
-    }
+      case "Processing":
+        return "bg-amber-50 text-amber-700";
 
-    if (status === "Packed") {
-      return "bg-purple-50 text-purple-700";
-    }
+      case "Packed":
+        return "bg-purple-50 text-purple-700";
 
-    if (status === "Shipped") {
-      return "bg-blue-50 text-blue-700";
-    }
+      case "Shipped":
+        return "bg-blue-50 text-blue-700";
 
-    if (status === "Out for Delivery") {
-      return "bg-cyan-50 text-cyan-700";
-    }
+      case "Out for Delivery":
+        return "bg-cyan-50 text-cyan-700";
 
-    if (status === "Cancelled") {
-      return "bg-red-50 text-red-700";
-    }
+      case "Cancelled":
+        return "bg-red-50 text-red-700";
 
-    return "bg-slate-50 text-slate-600";
+      default:
+        return "bg-slate-50 text-slate-600";
+    }
   };
 
   // =====================================================
@@ -174,7 +173,17 @@ const Dashboard = () => {
   // SAFE DATA
   // =====================================================
 
-  const stats = dashboardData?.stats || {};
+  const totalProducts =
+    dashboardData?.totalProducts || 0;
+
+  const totalCustomers =
+    dashboardData?.totalCustomers || 0;
+
+  const totalOrders =
+    dashboardData?.totalOrders || 0;
+
+  const totalRevenue =
+    dashboardData?.totalRevenue || 0;
 
   const recentOrders =
     dashboardData?.recentOrders || [];
@@ -182,23 +191,17 @@ const Dashboard = () => {
   const topProducts =
     dashboardData?.topProducts || [];
 
-  const salesOverview =
-    dashboardData?.salesOverview || [];
-
-  const inventory =
-    dashboardData?.inventory || {};
+  const salesData =
+    dashboardData?.salesData || [];
 
   // =====================================================
-  // STATISTICS
+  // STAT CARDS
   // =====================================================
 
   const statsCards = [
     {
       title: "Total Products",
-      value: stats.totalProducts || 0,
-      change: stats.productChange || "0%",
-      positive:
-        stats.productChangePositive ?? true,
+      value: totalProducts,
       icon: Box,
       iconBg: "bg-indigo-50",
       iconColor: "text-indigo-600",
@@ -206,10 +209,7 @@ const Dashboard = () => {
 
     {
       title: "Total Orders",
-      value: stats.totalOrders || 0,
-      change: stats.orderChange || "0%",
-      positive:
-        stats.orderChangePositive ?? true,
+      value: totalOrders,
       icon: ShoppingCart,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
@@ -217,10 +217,7 @@ const Dashboard = () => {
 
     {
       title: "Total Customers",
-      value: stats.totalCustomers || 0,
-      change: stats.customerChange || "0%",
-      positive:
-        stats.customerChangePositive ?? true,
+      value: totalCustomers,
       icon: Users,
       iconBg: "bg-blue-50",
       iconColor: "text-blue-600",
@@ -229,11 +226,8 @@ const Dashboard = () => {
     {
       title: "Total Revenue",
       value: `₹${Number(
-        stats.totalRevenue || 0
+        totalRevenue
       ).toLocaleString("en-IN")}`,
-      change: stats.revenueChange || "0%",
-      positive:
-        stats.revenueChangePositive ?? true,
       icon: IndianRupee,
       iconBg: "bg-amber-50",
       iconColor: "text-amber-600",
@@ -241,12 +235,13 @@ const Dashboard = () => {
   ];
 
   // =====================================================
-  // MAX SALES FOR CHART
+  // MAX SALES
   // =====================================================
 
   const maxSales = Math.max(
-    ...salesOverview.map(
-      (item) => Number(item.amount) || 0
+    ...salesData.map(
+      (item) =>
+        Number(item.amount) || 0
     ),
     1
   );
@@ -257,11 +252,13 @@ const Dashboard = () => {
 
   return (
     <div className="w-full">
+
       {/* =================================================
-          PAGE HEADER
+          HEADER
       ================================================= */}
 
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Dashboard
@@ -282,6 +279,7 @@ const Dashboard = () => {
 
           Refresh
         </button>
+
       </div>
 
       {/* =================================================
@@ -289,6 +287,7 @@ const Dashboard = () => {
       ================================================= */}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
         {statsCards.map((stat) => {
           const Icon = stat.icon;
 
@@ -297,8 +296,11 @@ const Dashboard = () => {
               key={stat.title}
               className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
+
               <div className="flex items-start justify-between">
+
                 <div>
+
                   <p className="text-sm font-medium text-slate-500">
                     {stat.title}
                   </p>
@@ -306,6 +308,7 @@ const Dashboard = () => {
                   <h2 className="mt-2 text-2xl font-bold text-slate-900">
                     {stat.value}
                   </h2>
+
                 </div>
 
                 <div
@@ -313,404 +316,360 @@ const Dashboard = () => {
                 >
                   <Icon size={21} />
                 </div>
+
               </div>
 
               <div className="mt-4 flex items-center gap-2">
-                <span
-                  className={`flex items-center gap-1 text-xs font-semibold ${
-                    stat.positive
-                      ? "text-emerald-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {stat.positive ? (
-                    <ArrowUpRight size={14} />
-                  ) : (
-                    <ArrowDownRight size={14} />
-                  )}
 
-                  {stat.change}
+                <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                  <ArrowUpRight size={14} />
+
+                  Current
                 </span>
 
                 <span className="text-xs text-slate-400">
-                  vs last month
+                  store statistics
                 </span>
+
               </div>
+
             </div>
           );
         })}
+
       </div>
 
       {/* =================================================
-          SALES + INVENTORY
+          SALES OVERVIEW
       ================================================= */}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* SALES OVERVIEW */}
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Sales Overview
-              </h2>
+        <div>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Store sales for the last 7 days
-              </p>
-            </div>
+          <h2 className="text-lg font-bold text-slate-900">
+            Sales Overview
+          </h2>
 
-            <button
-              type="button"
-              onClick={fetchDashboardData}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-            >
-              <MoreHorizontal size={20} />
-            </button>
-          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            Revenue from delivered orders for the last 7 days
+          </p>
 
-          {/* CHART */}
+        </div>
 
-          <div className="mt-8 flex h-64 items-end gap-3 sm:gap-5">
-            {salesOverview.map(
-              (item, index) => {
-                const amount =
-                  Number(item.amount) || 0;
+        {/* CHART */}
 
-                const height =
-                  (amount / maxSales) * 100;
+        <div className="mt-8 flex h-64 items-end gap-3 sm:gap-5">
 
-                return (
-                  <div
-                    key={`${item.day}-${index}`}
-                    className="flex h-full flex-1 flex-col items-center justify-end gap-3"
-                  >
-                    <div className="flex h-full w-full items-end">
-                      <div
-                        className="w-full rounded-t-lg bg-indigo-500 transition hover:bg-indigo-600"
-                        style={{
-                          height: `${Math.max(
-                            height,
-                            amount > 0 ? 5 : 0
-                          )}%`,
-                        }}
-                        title={`₹${amount.toLocaleString(
-                          "en-IN"
-                        )}`}
-                      />
-                    </div>
+          {salesData.map(
+            (item, index) => {
 
-                    <span className="text-xs font-medium text-slate-400">
-                      {item.day}
-                    </span>
+              const amount =
+                Number(item.amount) || 0;
+
+              const height =
+                (amount / maxSales) * 100;
+
+              return (
+                <div
+                  key={`${item.date}-${index}`}
+                  className="flex h-full flex-1 flex-col items-center justify-end gap-3"
+                >
+
+                  <div className="flex h-full w-full items-end">
+
+                    <div
+                      className="w-full rounded-t-lg bg-indigo-500 transition hover:bg-indigo-600"
+                      style={{
+                        height: `${Math.max(
+                          height,
+                          amount > 0 ? 5 : 0
+                        )}%`,
+                      }}
+                      title={`₹${amount.toLocaleString(
+                        "en-IN"
+                      )}`}
+                    />
+
                   </div>
-                );
-              }
-            )}
 
-            {salesOverview.length === 0 && (
-              <div className="flex w-full items-center justify-center text-sm text-slate-400">
-                No sales data available.
-              </div>
-            )}
-          </div>
+                  <span className="text-xs font-medium text-slate-400">
+                    {item.day}
+                  </span>
+
+                </div>
+              );
+            }
+          )}
+
+          {salesData.length === 0 && (
+            <div className="flex w-full items-center justify-center text-sm text-slate-400">
+              No delivered sales in the last 7 days.
+            </div>
+          )}
+
         </div>
 
-        {/* INVENTORY */}
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Product Inventory
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Current store inventory
-              </p>
-            </div>
-
-            <Package
-              size={22}
-              className="text-indigo-600"
-            />
-          </div>
-
-          <div className="mt-7 space-y-6">
-            {/* IN STOCK */}
-
-            <div>
-              <div className="mb-2 flex justify-between">
-                <span className="text-sm text-slate-500">
-                  In Stock
-                </span>
-
-                <span className="text-sm font-bold text-slate-800">
-                  {inventory.inStockPercentage ||
-                    0}
-                  %
-                </span>
-              </div>
-
-              <div className="h-2 rounded-full bg-slate-100">
-                <div
-                  className="h-2 rounded-full bg-emerald-500"
-                  style={{
-                    width: `${
-                      inventory.inStockPercentage ||
-                      0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* LOW STOCK */}
-
-            <div>
-              <div className="mb-2 flex justify-between">
-                <span className="text-sm text-slate-500">
-                  Low Stock
-                </span>
-
-                <span className="text-sm font-bold text-slate-800">
-                  {inventory.lowStockPercentage ||
-                    0}
-                  %
-                </span>
-              </div>
-
-              <div className="h-2 rounded-full bg-slate-100">
-                <div
-                  className="h-2 rounded-full bg-amber-500"
-                  style={{
-                    width: `${
-                      inventory.lowStockPercentage ||
-                      0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* OUT OF STOCK */}
-
-            <div>
-              <div className="mb-2 flex justify-between">
-                <span className="text-sm text-slate-500">
-                  Out of Stock
-                </span>
-
-                <span className="text-sm font-bold text-slate-800">
-                  {inventory.outOfStockPercentage ||
-                    0}
-                  %
-                </span>
-              </div>
-
-              <div className="h-2 rounded-full bg-slate-100">
-                <div
-                  className="h-2 rounded-full bg-red-500"
-                  style={{
-                    width: `${
-                      inventory.outOfStockPercentage ||
-                      0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-7 rounded-xl bg-slate-50 p-4">
-            <p className="text-xs font-medium text-slate-500">
-              Total Products
-            </p>
-
-            <p className="mt-1 text-2xl font-bold text-slate-900">
-              {stats.totalProducts || 0}
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* =================================================
-          RECENT ORDERS + TOP PRODUCTS
+          RECENT ORDERS
       ================================================= */}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* RECENT ORDERS */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
-          <div className="flex items-center justify-between border-b border-slate-100 p-5">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Recent Orders
-              </h2>
+        <div className="border-b border-slate-100 p-5">
 
-              <p className="mt-1 text-sm text-slate-500">
-                Latest orders placed by customers
-              </p>
-            </div>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900">
+            Recent Orders
+          </h2>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[650px]">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50">
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    Order
-                  </th>
+          <p className="mt-1 text-sm text-slate-500">
+            Latest orders placed by customers
+          </p>
 
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    Customer
-                  </th>
-
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    Items
-                  </th>
-
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    Amount
-                  </th>
-
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {recentOrders.length > 0 ? (
-                  recentOrders.map(
-                    (order) => (
-                      <tr
-                        key={order.id}
-                        className="border-b border-slate-100 transition hover:bg-slate-50"
-                      >
-                        <td className="px-5 py-4">
-                          <span className="text-sm font-semibold text-indigo-600">
-                            {order.id}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span className="text-sm font-medium text-slate-700">
-                            {order.customer}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span className="text-sm text-slate-500">
-                            {order.items}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span className="text-sm font-bold text-slate-800">
-                            ₹
-                            {Number(
-                              order.amount || 0
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
-                              order.status
-                            )}`}
-                          >
-                            {order.status}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  )
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="px-5 py-10 text-center text-sm text-slate-400"
-                    >
-                      No orders found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
 
-        {/* TOP PRODUCTS */}
+        <div className="overflow-x-auto">
 
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 p-5">
+          <table className="w-full min-w-[700px]">
+
+            <thead>
+
+              <tr className="border-b border-slate-100 bg-slate-50">
+
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Order
+                </th>
+
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Customer
+                </th>
+
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Items
+                </th>
+
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Amount
+                </th>
+
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Payment
+                </th>
+
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Status
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              {recentOrders.length > 0 ? (
+
+                recentOrders.map(
+                  (order) => (
+
+                    <tr
+                      key={order.id}
+                      className="border-b border-slate-100 transition hover:bg-slate-50"
+                    >
+
+                      <td className="px-5 py-4">
+
+                        <span className="text-sm font-semibold text-indigo-600">
+                          {String(
+                            order.id
+                          ).slice(-8)}
+                        </span>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <span className="text-sm font-medium text-slate-700">
+                          {order.customer}
+                        </span>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <span className="text-sm text-slate-500">
+                          {order.items}
+                        </span>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <span className="text-sm font-bold text-slate-800">
+                          ₹
+                          {Number(
+                            order.amount || 0
+                          ).toLocaleString(
+                            "en-IN"
+                          )}
+                        </span>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <div>
+
+                          <p className="text-sm font-medium text-slate-700">
+                            {order.paymentMethod ||
+                              "COD"}
+                          </p>
+
+                          <p className="text-xs text-slate-400">
+                            {order.paymentStatus ||
+                              "Pending"}
+                          </p>
+
+                        </div>
+
+                      </td>
+
+                      <td className="px-5 py-4">
+
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
+                            order.status
+                          )}`}
+                        >
+                          {order.status}
+                        </span>
+
+                      </td>
+
+                    </tr>
+
+                  )
+                )
+
+              ) : (
+
+                <tr>
+
+                  <td
+                    colSpan="6"
+                    className="px-5 py-10 text-center text-sm text-slate-400"
+                  >
+                    No orders found.
+                  </td>
+
+                </tr>
+
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+      {/* =================================================
+          TOP PRODUCTS
+      ================================================= */}
+
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+        <div className="border-b border-slate-100 p-5">
+
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <Package size={20} />
+            </div>
+
             <div>
+
               <h2 className="text-lg font-bold text-slate-900">
                 Top Products
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Best selling products
+                Best selling products from delivered orders
               </p>
+
             </div>
+
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {topProducts.length > 0 ? (
-              topProducts.map(
-                (product, index) => (
-                  <div
-                    key={
-                      product.name ||
-                      index
-                    }
-                    className="flex items-center gap-3 p-4 transition hover:bg-slate-50"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-600">
-                      {index + 1}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-800">
-                        {product.name}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-400">
-                        {product.category}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-slate-800">
-                        ₹
-                        {Number(
-                          product.revenue ||
-                            0
-                        ).toLocaleString(
-                          "en-IN"
-                        )}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-400">
-                        {product.sales || 0}{" "}
-                        sold
-                      </p>
-                    </div>
-                  </div>
-                )
-              )
-            ) : (
-              <div className="p-6 text-center text-sm text-slate-400">
-                No product sales yet.
-              </div>
-            )}
-          </div>
         </div>
+
+        <div className="divide-y divide-slate-100">
+
+          {topProducts.length > 0 ? (
+
+            topProducts.map(
+              (product, index) => (
+
+                <div
+                  key={
+                    product._id ||
+                    index
+                  }
+                  className="flex items-center gap-4 p-5 transition hover:bg-slate-50"
+                >
+
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-600">
+                    {index + 1}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+
+                    <p className="truncate text-sm font-semibold text-slate-800">
+                      {product.name}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      {product.sales || 0} sold
+                    </p>
+
+                  </div>
+
+                  <div className="text-right">
+
+                    <p className="text-sm font-bold text-slate-800">
+                      ₹
+                      {Number(
+                        product.revenue || 0
+                      ).toLocaleString(
+                        "en-IN"
+                      )}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Revenue
+                    </p>
+
+                  </div>
+
+                </div>
+
+              )
+            )
+
+          ) : (
+
+            <div className="p-8 text-center text-sm text-slate-400">
+              No delivered product sales yet.
+            </div>
+
+          )}
+
+        </div>
+
       </div>
+
     </div>
   );
 };

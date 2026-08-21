@@ -2,81 +2,142 @@ import jwt from "jsonwebtoken";
 
 const adminAuth = async (req, res, next) => {
   try {
-    console.log("========== ADMIN AUTH ==========");
+    console.log("=================================");
+    console.log("ADMIN AUTH MIDDLEWARE");
+    console.log("=================================");
 
-    // Get Authorization header
+    // ---------------------------------------------
+    // GET AUTHORIZATION HEADER
+    // ---------------------------------------------
+
     const authHeader = req.headers.authorization;
 
     console.log("Authorization Header:", authHeader);
 
     if (!authHeader) {
+      console.log("❌ No Authorization Header");
+
       return res.status(401).json({
         success: false,
         message: "Admin token missing.",
       });
     }
 
-    // Expected:
-    // Bearer eyJhbGciOiJIUzI1Ni...
+    // ---------------------------------------------
+    // CHECK BEARER FORMAT
+    // ---------------------------------------------
+
     const parts = authHeader.split(" ");
 
-    if (parts.length !== 2 || parts[0] !== "Bearer") {
+    if (
+      parts.length !== 2 ||
+      parts[0] !== "Bearer"
+    ) {
+      console.log(
+        "❌ Invalid Authorization Format"
+      );
+
       return res.status(401).json({
         success: false,
-        message: "Invalid authorization format.",
+        message:
+          "Invalid authorization format.",
       });
     }
 
     const token = parts[1];
 
     if (!token) {
+      console.log("❌ Token is empty");
+
       return res.status(401).json({
         success: false,
         message: "Admin token missing.",
       });
     }
 
-    // IMPORTANT:
-    // Must be exactly the same secret used during admin login
+    // ---------------------------------------------
+    // JWT SECRET
+    // ---------------------------------------------
+
     const secret =
       process.env.JWT_SECRET ||
       "my_admin_secret_key";
 
-    const tokenDecode = jwt.verify(
+    console.log(
+      "JWT Secret exists:",
+      Boolean(secret)
+    );
+
+    // ---------------------------------------------
+    // VERIFY TOKEN
+    // ---------------------------------------------
+
+    const decoded = jwt.verify(
       token,
       secret
     );
 
     console.log(
-      "Decoded Admin Token:",
-      tokenDecode
+      "Decoded Token:",
+      decoded
     );
 
-    // Check admin role
-    if (tokenDecode.role !== "admin") {
+    // ---------------------------------------------
+    // CHECK ADMIN ROLE
+    // ---------------------------------------------
+
+    if (decoded.role !== "admin") {
+      console.log(
+        "❌ Invalid role:",
+        decoded.role
+      );
+
       return res.status(403).json({
         success: false,
-        message: "Access denied. Admin only.",
+        message:
+          "Access denied. Admin only.",
       });
     }
 
-    // Store admin information in request
-    req.adminId = tokenDecode.id;
-    req.adminEmail = tokenDecode.email;
-    req.adminRole = tokenDecode.role;
+    // ---------------------------------------------
+    // STORE ADMIN DATA
+    // ---------------------------------------------
 
-    console.log("Admin authentication successful.");
+    req.adminId = decoded.id;
+    req.adminEmail = decoded.email;
+    req.adminRole = decoded.role;
+
+    console.log(
+      "✅ ADMIN AUTHENTICATION SUCCESSFUL"
+    );
 
     next();
   } catch (error) {
     console.error(
-      "Admin Auth Error:",
+      "❌ ADMIN AUTH ERROR:",
       error.message
     );
 
-    return res.status(401).json({
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Admin token has expired. Please login again.",
+      });
+    }
+
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Invalid admin token. Please login again.",
+      });
+    }
+
+    return res.status(500).json({
       success: false,
-      message: "Invalid or expired admin token.",
+      message:
+        "Authentication server error.",
     });
   }
 };
