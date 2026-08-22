@@ -16,6 +16,7 @@ import dashboardRouter from "./routes/dashboardRoutes.js";
 import customerRouter from "./routes/customerRoutes.js";
 import couponRouter from "./routes/couponRoutes.js";
 
+import aiRoutes from "./routes/aiRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -62,6 +63,7 @@ app.use("/api/order", orderRouter);
 app.use("/api/dashboard",dashboardRouter);
 app.use("/api/admin/customers",customerRouter);
 app.use("/api/admin/coupon",couponRouter);
+app.use("/api/ai/",aiRoutes);
 
 // ==========================================
 // TEST ROUTE

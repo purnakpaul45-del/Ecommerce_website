@@ -23,6 +23,8 @@ import SearchBar from "./Components/SearchBar";
 // Toast
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import AIChatbot from "./Components/AIChatbot";
+
 
 const App = () => {
   const location = useLocation();
@@ -154,6 +156,7 @@ const App = () => {
           }
         />
       </Routes>
+      <AIChatbot/>
 
       {/* Hide Footer on Login/Register */}
       {!isAuthPage && <Footer />}
